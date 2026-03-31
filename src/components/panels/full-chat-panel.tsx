@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { useMissionControl, type ChatAttachment } from '@/store'
+import { useMissionControl, type ChatAttachment, type Conversation } from '@/store'
 import { useWebSocket } from '@/lib/websocket'
 import { useSmartPoll } from '@/lib/use-smart-poll'
 import { Button } from '@/components/ui/button'
@@ -682,7 +682,7 @@ function SidebarItem({ session, isActive, onSelect }: {
 // ── Session View (transcript + continue input) ────────────────────────────────
 
 function SessionView({ session, messages, loading, error, inputValue, setInputValue, onSend, isGenerating, slashResult }: {
-  session: NonNullable<ReturnType<typeof useMissionControl>['conversations'][0]['session']>
+  session: NonNullable<Conversation['session']>
   messages: SessionTranscriptMessage[]
   loading: boolean
   error: string | null
