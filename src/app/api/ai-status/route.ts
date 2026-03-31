@@ -60,7 +60,7 @@ function deriveDescription(agent?: string, channel?: string, chatType?: string, 
 // ── Session file scanners ─────────────────────────────────────────────────────
 
 /**
- * Scan ~/.openclaw/agents/*/sessions/sessions.json
+ * Scan ~/.openclaw/agents/{agentName}/sessions/sessions.json
  * Each sessions.json contains session metadata keyed by sessionKey.
  * Returns a list of SourceHit records sorted by mtimeMs descending.
  */
@@ -110,7 +110,7 @@ function scanOpenClawSessions(openclawStateDir: string): SourceHit[] {
 }
 
 /**
- * Scan ~/.claude/projects/*/  for *.jsonl session transcript files.
+ * Scan ~/.claude/projects/{slug}/ for .jsonl session transcript files.
  * These are written in real-time by Claude Code as responses stream in.
  */
 function scanClaudeSessions(claudeDir: string): SourceHit[] {
