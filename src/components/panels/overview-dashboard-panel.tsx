@@ -319,7 +319,7 @@ export function OverviewDashboardPanel() {
     return results
   }, [])
 
-  useSmartPoll(load, 30_000, { pauseWhenConnected: true })
+  useSmartPoll(() => { load() }, 30_000, { pauseWhenConnected: true })
 
   // Derived values
   const activeSessions = sessions.filter((s) => s.active).length
