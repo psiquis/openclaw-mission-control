@@ -10,3 +10,12 @@ GET /api/v1/runs/{run_id}/provenance
 PATCH /api/v1/runs/{run_id}
 POST /api/v1/runs
 PUT /api/v1/runs/{run_id}/eval
+# Local Mission Control routes pending OpenAPI coverage
+GET /api/ai-status
+GET /api/projects/{id}/files
+GET /api/projects/{id}/notes
+GET /api/skills/file
+GET /api/skills/files
+POST /api/projects/{id}/files
+POST /api/projects/{id}/notes
+PUT /api/skills/file
