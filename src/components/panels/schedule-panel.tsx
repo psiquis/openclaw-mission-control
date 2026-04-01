@@ -633,7 +633,7 @@ export function SchedulePanel() {
           <div className="w-64 shrink-0 border-l border-zinc-800 flex flex-col">
             {/* Sidebar header */}
             <div className="px-4 py-3 border-b border-zinc-800 shrink-0">
-              <div className="text-xs font-semibold text-zinc-300">Today's Schedule</div>
+              <div className="text-xs font-semibold text-zinc-300">Today&apos;s Schedule</div>
               <div className="text-xs text-zinc-500 mt-0.5">
                 {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
               </div>
