@@ -633,9 +633,34 @@ function GatewayCard({ gateway, health, historyEntries = [], isProbing, isCurren
 
 function AddGatewayForm({ onAdded, onCancel }: { onAdded: () => void; onCancel: () => void }) {
   const t = useTranslations('multiGateway')
-  const [form, setForm] = useState({ name: '', host: '127.0.0.1', port: '18789', token: '' })
+  const [form, setForm] = useState({ name: '', host: '', port: '18789', token: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  /** Parse a full URL pasted into the host field and extract host + port. */
+  const handleHostChange = (raw: string) => {
+    const val = raw.trim()
+    const hasScheme = /^(ws|wss|http|https):\/\//i.test(val)
+    if (hasScheme) {
+      try {
+        const parsed = new URL(val)
+        const extractedHost = parsed.hostname + (parsed.pathname && parsed.pathname !== '/' ? parsed.pathname : '')
+        const extractedPort = parsed.port || (parsed.protocol === 'wss:' || parsed.protocol === 'https:' ? '443' : '18789')
+        setForm(f => ({ ...f, host: extractedHost, port: extractedPort }))
+        return
+      } catch { /* fall through */ }
+    }
+    // host:port shorthand
+    const colonIdx = val.lastIndexOf(':')
+    if (colonIdx > 0 && !val.includes('://')) {
+      const maybePort = val.slice(colonIdx + 1)
+      if (/^\d+$/.test(maybePort)) {
+        setForm(f => ({ ...f, host: val.slice(0, colonIdx), port: maybePort }))
+        return
+      }
+    }
+    setForm(f => ({ ...f, host: val }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -648,8 +673,8 @@ function AddGatewayForm({ onAdded, onCancel }: { onAdded: () => void; onCancel: 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: form.name,
-          host: form.host,
-          port: parseInt(form.port),
+          host: form.host || '127.0.0.1',
+          port: parseInt(form.port) || 18789,
           token: form.token,
           is_primary: false,
         }),
@@ -669,7 +694,12 @@ function AddGatewayForm({ onAdded, onCancel }: { onAdded: () => void; onCancel: 
 
   return (
     <form onSubmit={handleSubmit} className="bg-card border border-primary/20 rounded-lg p-4 space-y-3">
-      <h3 className="text-sm font-semibold text-foreground">{t('addGatewayTitle')}</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-foreground">{t('addGatewayTitle')}</h3>
+        <span className="text-2xs text-muted-foreground">
+          Tip: paste a full URL in the host field — e.g. <code className="font-mono bg-secondary px-1 rounded">wss://my.tailnet.ts.net:18789</code>
+        </span>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <div>
@@ -678,18 +708,22 @@ function AddGatewayForm({ onAdded, onCancel }: { onAdded: () => void; onCancel: 
             type="text"
             value={form.name}
             onChange={e => setForm({ ...form, name: e.target.value })}
-            placeholder={t('namePlaceholder')}
+            placeholder="my-gateway"
             className="w-full h-8 px-2.5 rounded-md bg-secondary border border-border text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             required
           />
         </div>
-        <div>
-          <label className="block text-2xs text-muted-foreground mb-1">{t('host')}</label>
+        <div className="sm:col-span-1 md:col-span-1">
+          <label className="block text-2xs text-muted-foreground mb-1">
+            {t('host')}
+            <span className="text-muted-foreground/60 ml-1">— hostname, IP, or full URL</span>
+          </label>
           <input
             type="text"
             value={form.host}
-            onChange={e => setForm({ ...form, host: e.target.value })}
-            className="w-full h-8 px-2.5 rounded-md bg-secondary border border-border text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            onChange={e => handleHostChange(e.target.value)}
+            placeholder="100.x.x.x or host.tailnet.ts.net"
+            className="w-full h-8 px-2.5 rounded-md bg-secondary border border-border text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-mono"
             required
           />
         </div>
@@ -713,6 +747,21 @@ function AddGatewayForm({ onAdded, onCancel }: { onAdded: () => void; onCancel: 
             className="w-full h-8 px-2.5 rounded-md bg-secondary border border-border text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
+      </div>
+
+      {/* Examples row */}
+      <div className="flex flex-wrap gap-2 text-2xs text-muted-foreground">
+        <span>Examples:</span>
+        {['100.86.182.96:18789', 'my.server.tailnet.ts.net:18789', '192.168.1.10:18789', 'wss://my.domain.com/gw'].map(example => (
+          <button
+            key={example}
+            type="button"
+            onClick={() => handleHostChange(example)}
+            className="font-mono bg-secondary hover:bg-secondary/80 px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+          >
+            {example}
+          </button>
+        ))}
       </div>
 
       {error && <p className="text-xs text-red-400">{error}</p>}

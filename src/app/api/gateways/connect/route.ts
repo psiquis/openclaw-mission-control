@@ -155,13 +155,16 @@ export async function POST(request: NextRequest) {
   // lives on a different host/path than the server-side localhost gateway.
   const explicitBrowserWsUrl = String(process.env.NEXT_PUBLIC_GATEWAY_URL || '').trim()
 
-  // When gateway host is localhost but the browser is remote (e.g. Tailscale),
+  // When gateway host is localhost/docker but the browser is remote (e.g. Tailscale),
   // resolve the correct browser-accessible WebSocket URL.
+  // For external hosts (Tailscale IPs, public hostnames, etc.) we use the stored
+  // host/port directly — no rewriting needed.
   const remoteUrl = explicitBrowserWsUrl || resolveRemoteGatewayUrl(gateway, request)
+  const browserProtocol = inferBrowserProtocol(request)
   const ws_url = remoteUrl || buildGatewayWebSocketUrl({
     host: gateway.host,
     port: gateway.port,
-    browserProtocol: inferBrowserProtocol(request),
+    browserProtocol,
   })
 
   const dbToken = (gateway.token || '').trim()
