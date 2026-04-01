@@ -2,8 +2,12 @@ import { NextResponse } from 'next/server'
 import { existsSync } from 'node:fs'
 import { APP_VERSION } from '@/lib/version'
 
-const GITHUB_RELEASES_URL =
-  'https://api.github.com/repos/psiquis/openclaw-mission-control/releases/latest'
+// Override with MC_GITHUB_REPO env var to point to a different fork/repo.
+// Format: "owner/repo"  e.g.  MC_GITHUB_REPO=psiquis/openclaw-mission-control
+const GITHUB_REPO =
+  (process.env.MC_GITHUB_REPO || 'psiquis/openclaw-mission-control').replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '')
+
+const GITHUB_RELEASES_URL = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`
 
 /** Simple semver compare: returns 1 if a > b, -1 if a < b, 0 if equal. */
 function compareSemver(a: string, b: string): number {

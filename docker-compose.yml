@@ -20,6 +20,9 @@ services:
       # - NEXT_PUBLIC_GATEWAY_PORT=${NEXT_PUBLIC_GATEWAY_PORT:-18789}
       # Set to true if running without an OpenClaw gateway (standalone dashboard mode).
       # - NEXT_PUBLIC_GATEWAY_OPTIONAL=true
+      # ── GitHub release tracking ──
+      # Which GitHub repo to check for updates. Format: owner/repo
+      - MC_GITHUB_REPO=${MC_GITHUB_REPO:-psiquis/openclaw-mission-control}
     env_file:
       - path: .env
         required: false
