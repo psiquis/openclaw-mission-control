@@ -108,7 +108,13 @@ export function buildGatewayWebSocketUrl(input: {
   // and browsers allow ws://localhost from HTTPS pages (mixed-content exception).
   const wsProtocol = isLocalHost(rawHost) ? 'ws' : (browserProtocol === 'https:' ? 'wss' : 'ws')
 
-  // Always include the port explicitly. Users who run behind a reverse proxy on 443
-  // should set port 443 explicitly, or store a full URL (e.g. wss://host/gw) in the host field.
-  return `${wsProtocol}://${rawHost}:${port || 18789}`
+  const resolvedPort = port || 18789
+  const omitDefaultRemoteHttpsPort =
+    !isLocalHost(rawHost) && browserProtocol === 'https:' && resolvedPort === 18789
+
+  // For remote hosts in HTTPS browser contexts, prefer default WSS endpoint without :18789.
+  // Keep explicit ports for HTTP contexts and non-default ports.
+  return omitDefaultRemoteHttpsPort
+    ? `${wsProtocol}://${rawHost}`
+    : `${wsProtocol}://${rawHost}:${resolvedPort}`
 }
