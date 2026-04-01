@@ -63,11 +63,25 @@ import { completeNavigationTiming } from '@/lib/navigation-metrics'
 import { panelHref, useNavigateToPanel } from '@/lib/navigation'
 import { clearOnboardingDismissedThisSession, clearOnboardingReplayFromStart, getOnboardingSessionDecision, markOnboardingReplayFromStart, readOnboardingDismissedThisSession } from '@/lib/onboarding-session'
 import { Button } from '@/components/ui/button'
-import { useMissionControl } from '@/store'
+import { useMissionControl, type UpdateAvailableInfo } from '@/store'
 
 interface GatewaySummary {
   id: number
   is_primary: number
+}
+
+function parseUpdateInfo(data: any): UpdateAvailableInfo | null {
+  if (!data || data.updateAvailable !== true) return null
+  if (typeof data.currentVersion !== 'string' || typeof data.latestVersion !== 'string') return null
+  if (typeof data.releaseUrl !== 'string' || typeof data.releaseNotes !== 'string') return null
+
+  return {
+    currentVersion: data.currentVersion,
+    latestVersion: data.latestVersion,
+    releaseUrl: data.releaseUrl,
+    releaseNotes: data.releaseNotes,
+    deploymentMode: data.deploymentMode === 'docker' ? 'docker' : 'bare-metal',
+  }
 }
 
 const STEP_KEYS = ['auth', 'capabilities', 'config', 'connect', 'agents', 'sessions', 'projects', 'memory', 'skills'] as const
@@ -240,13 +254,7 @@ export default function Home() {
     fetch('/api/releases/check')
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        if (data?.updateAvailable) {
-          setUpdateAvailable({
-            latestVersion: data.latestVersion,
-            releaseUrl: data.releaseUrl,
-            releaseNotes: data.releaseNotes,
-          })
-        }
+        setUpdateAvailable(parseUpdateInfo(data))
       })
       .catch(() => {})
 
