@@ -18,6 +18,8 @@ export function UpdateBanner() {
   if (!updateAvailable) return null
   if (updateDismissedVersion === updateAvailable.latestVersion) return null
 
+  const deploymentMode = (updateAvailable as { deploymentMode?: string }).deploymentMode
+  const isDocker = deploymentMode === 'docker'
   const isDocker = 'deploymentMode' in updateAvailable && updateAvailable.deploymentMode === 'docker'
 
   async function handleUpdate() {
