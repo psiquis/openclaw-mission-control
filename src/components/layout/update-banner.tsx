@@ -13,11 +13,21 @@ export function UpdateBanner() {
   const tc = useTranslations('common')
   const [state, setState] = useState<UpdateState>('idle')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [showDockerInstructions, setShowDockerInstructions] = useState(false)
 
   if (!updateAvailable) return null
   if (updateDismissedVersion === updateAvailable.latestVersion) return null
 
+  const isDocker = updateAvailable.deploymentMode === 'docker'
+
   async function handleUpdate() {
+    // Docker deployments cannot self-update from inside the container —
+    // show instructions to rebuild on the host instead.
+    if (isDocker) {
+      setShowDockerInstructions(prev => !prev)
+      return
+    }
+
     setState('updating')
     setErrorMsg(null)
 
@@ -37,24 +47,13 @@ export function UpdateBanner() {
 
       if (data.restartRequired) {
         setState('restarting')
-        // Poll until the server comes back up, then reload
         const poll = setInterval(async () => {
           try {
             const check = await fetch('/api/releases/check', { cache: 'no-store' })
-            if (check.ok) {
-              clearInterval(poll)
-              window.location.reload()
-            }
-          } catch {
-            // Server still restarting
-          }
+            if (check.ok) { clearInterval(poll); window.location.reload() }
+          } catch { /* still restarting */ }
         }, 2000)
-        // Stop polling after 2 minutes
-        setTimeout(() => {
-          clearInterval(poll)
-          setState('idle')
-          window.location.reload()
-        }, 120_000)
+        setTimeout(() => { clearInterval(poll); setState('idle'); window.location.reload() }, 120_000)
       } else {
         window.location.reload()
       }
@@ -64,65 +63,99 @@ export function UpdateBanner() {
     }
   }
 
-  const isbusy = state === 'updating' || state === 'restarting'
+  const isBusy = state === 'updating' || state === 'restarting'
 
   return (
-    <div className="mx-4 mt-3 mb-0 flex items-center gap-3 px-4 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-sm">
-      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-      <p className="flex-1 text-xs text-emerald-300">
-        {state === 'updating' && (
-          <span className="font-medium text-amber-300">{t('updating')}</span>
+    <div className="mx-4 mt-3 mb-0 rounded-xl border border-emerald-500/20 bg-emerald-500/8 overflow-hidden">
+      {/* Main banner row */}
+      <div className="flex items-center gap-3 px-4 py-2.5">
+        {/* Pulsing dot */}
+        <span className="relative flex h-2 w-2 shrink-0">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+        </span>
+
+        <p className="flex-1 text-xs text-emerald-300 min-w-0">
+          {state === 'updating' && (
+            <span className="font-medium text-amber-300">⚙️ {t('updating')}</span>
+          )}
+          {state === 'restarting' && (
+            <span className="font-medium text-amber-300">🔄 {t('restartingServer')}</span>
+          )}
+          {state === 'error' && (
+            <span className="font-medium text-red-300">⚠️ {errorMsg}</span>
+          )}
+          {state === 'idle' && (
+            <>
+              <span className="font-semibold text-emerald-200">
+                🚀 v{updateAvailable.latestVersion} available
+              </span>
+              <span className="text-emerald-400/70 ml-1">
+                (current: v{updateAvailable.currentVersion})
+              </span>
+            </>
+          )}
+        </p>
+
+        {!isBusy && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={handleUpdate}
+              className="text-2xs font-semibold text-zinc-950 bg-emerald-500 hover:bg-emerald-400 active:scale-95 px-3 py-1.5 rounded-lg transition-all shadow shadow-emerald-500/20"
+            >
+              {isDocker ? '📋 How to update' : tc('updateNow')}
+            </button>
+            <a
+              href={updateAvailable.releaseUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-2xs font-medium text-emerald-400 hover:text-emerald-300 px-2 py-1.5 rounded-lg border border-emerald-500/20 hover:border-emerald-500/40 transition-colors"
+            >
+              {tc('viewRelease')}
+            </a>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => { dismissUpdate(updateAvailable.latestVersion); setShowDockerInstructions(false) }}
+              className="text-emerald-500/40 hover:text-emerald-400 hover:bg-transparent"
+              title={tc('dismiss')}
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M4 4l8 8M12 4l-8 8" />
+              </svg>
+            </Button>
+          </div>
         )}
-        {state === 'restarting' && (
-          <span className="font-medium text-amber-300">{t('restartingServer')}</span>
+
+        {isBusy && (
+          <svg className="w-4 h-4 animate-spin text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z" />
+          </svg>
         )}
-        {state === 'error' && (
-          <span className="font-medium text-red-300">{errorMsg}</span>
-        )}
-        {state === 'idle' && (
-          <>
-            <span className="font-medium text-emerald-200">
-              {t('updateAvailable', { version: updateAvailable.latestVersion })}
-            </span>
-            {t('newerVersionAvailable')}
-          </>
-        )}
-      </p>
-      {!isbusy && (
-        <>
+      </div>
+
+      {/* Docker update instructions — expands inline */}
+      {showDockerInstructions && isDocker && (
+        <div className="px-4 pb-4 border-t border-emerald-500/15">
+          <p className="text-xs text-zinc-400 mb-2 mt-3">
+            Run these commands on your server to update:
+          </p>
+          <div className="bg-zinc-950 rounded-lg border border-zinc-800 p-3 font-mono text-xs space-y-1 select-all">
+            <div><span className="text-zinc-600"># Pull latest code</span></div>
+            <div><span className="text-emerald-400">cd</span><span className="text-zinc-300"> ~/openclaw-mission-control</span></div>
+            <div><span className="text-emerald-400">git pull</span></div>
+            <div className="pt-1"><span className="text-zinc-600"># Rebuild and restart</span></div>
+            <div><span className="text-emerald-400">docker compose down</span></div>
+            <div><span className="text-emerald-400">docker compose up --build -d</span></div>
+          </div>
           <button
-            onClick={handleUpdate}
-            disabled={isbusy}
-            className="shrink-0 text-2xs font-medium text-emerald-900 bg-emerald-500 hover:bg-emerald-400 px-2.5 py-1 rounded transition-colors"
+            onClick={() => setShowDockerInstructions(false)}
+            className="mt-2 text-2xs text-zinc-500 hover:text-zinc-400 transition-colors"
           >
-            {tc('updateNow')}
+            ✕ Close
           </button>
-          <a
-            href={updateAvailable.releaseUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 text-2xs font-medium text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded border border-emerald-500/20 hover:border-emerald-500/40 transition-colors"
-          >
-            {tc('viewRelease')}
-          </a>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => dismissUpdate(updateAvailable.latestVersion)}
-            className="shrink-0 text-emerald-400/60 hover:text-emerald-300 hover:bg-transparent"
-            title={tc('dismiss')}
-          >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <path d="M4 4l8 8M12 4l-8 8" />
-            </svg>
-          </Button>
-        </>
-      )}
-      {isbusy && (
-        <svg className="w-4 h-4 animate-spin text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z" />
-        </svg>
+        </div>
       )}
     </div>
   )

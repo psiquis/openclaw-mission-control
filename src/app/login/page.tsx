@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, FormEvent } from 'react'
-import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { LanguageSwitcherSelect } from '@/components/ui/language-switcher'
@@ -61,6 +60,37 @@ function GoogleIcon({ className }: { className?: string }) {
   )
 }
 
+/** OpenClaw Mission Control logo — inline SVG, no external deps */
+function MCLogo({ size = 48 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Outer ring */}
+      <circle cx="24" cy="24" r="22" stroke="#10b981" strokeWidth="1.5" strokeOpacity="0.4" />
+      {/* Mid ring */}
+      <circle cx="24" cy="24" r="16" stroke="#10b981" strokeWidth="1" strokeOpacity="0.25" strokeDasharray="3 3" />
+      {/* Center dot */}
+      <circle cx="24" cy="24" r="3" fill="#10b981" />
+      {/* Radar sweep lines */}
+      <line x1="24" y1="24" x2="24" y2="4" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.8" />
+      <line x1="24" y1="24" x2="38" y2="14" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.5" />
+      <line x1="24" y1="24" x2="40" y2="30" stroke="#10b981" strokeWidth="1" strokeLinecap="round" strokeOpacity="0.25" />
+      {/* Blip dots */}
+      <circle cx="24" cy="9" r="1.5" fill="#10b981" />
+      <circle cx="35" cy="17" r="1" fill="#10b981" fillOpacity="0.7" />
+      <circle cx="15" cy="33" r="1" fill="#34d399" fillOpacity="0.5" />
+      {/* Claw marks */}
+      <path d="M17 13 C14 15 13 19 15 22" stroke="#6ee7b7" strokeWidth="1.2" strokeLinecap="round" strokeOpacity="0.6" />
+      <path d="M19 11 C15 13 14 17 16 20" stroke="#6ee7b7" strokeWidth="1" strokeLinecap="round" strokeOpacity="0.4" />
+    </svg>
+  )
+}
+
 export default function LoginPage() {
   const t = useTranslations('auth')
   const tc = useTranslations('common')
@@ -76,18 +106,13 @@ export default function LoginPage() {
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''
 
-  // Check if first-time setup is needed on page load — auto-redirect to /setup
   useEffect(() => {
     fetch('/api/setup')
       .then((res) => res.json())
       .then((data) => {
-        if (data.needsSetup) {
-          window.location.href = '/setup'
-        }
+        if (data.needsSetup) window.location.href = '/setup'
       })
-      .catch(() => {
-        // Ignore — setup check is best-effort
-      })
+      .catch(() => {})
   }, [])
 
   const completeLogin = useCallback(async (path: string, body: LoginRequestBody) => {
@@ -100,30 +125,18 @@ export default function LoginPage() {
     if (!res.ok) {
       const data = readLoginErrorPayload(await res.json().catch(() => null))
       if (data.code === 'PENDING_APPROVAL') {
-        setPendingApproval(true)
-        setNeedsSetup(false)
-        setError('')
-        setLoading(false)
-        setGoogleLoading(false)
+        setPendingApproval(true); setNeedsSetup(false); setError(''); setLoading(false); setGoogleLoading(false)
         return false
       }
       if (data.code === 'NO_USERS') {
-        setNeedsSetup(true)
-        setError('')
-        setLoading(false)
-        setGoogleLoading(false)
+        setNeedsSetup(true); setError(''); setLoading(false); setGoogleLoading(false)
         return false
       }
       setError(data.error || t('loginFailed'))
-      setPendingApproval(false)
-      setNeedsSetup(false)
-      setLoading(false)
-      setGoogleLoading(false)
+      setPendingApproval(false); setNeedsSetup(false); setLoading(false); setGoogleLoading(false)
       return false
     }
 
-    // Full reload ensures the session cookie is sent on all subsequent requests.
-    // router.push() + refresh() can race and use stale RSC payloads.
     window.location.href = '/'
     return true
   }, [t])
@@ -132,12 +145,9 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-
-    // Read DOM values directly to handle browser autofill (which doesn't fire onChange)
     const form = e.target as HTMLFormElement
     const formUsername = (form.elements.namedItem('username') as HTMLInputElement)?.value || username
     const formPassword = (form.elements.namedItem('password') as HTMLInputElement)?.value || password
-
     try {
       await completeLogin('/api/auth/login', { username: formUsername, password: formPassword })
     } catch {
@@ -146,10 +156,8 @@ export default function LoginPage() {
     }
   }
 
-  // Initialize Google Sign-In SDK (hidden prompt mode)
   useEffect(() => {
     if (!googleClientId) return
-
     const onScriptLoad = () => {
       if (!window.google) return
       googleCallbackRef.current = async (response: GoogleCredentialResponse) => {
@@ -169,17 +177,11 @@ export default function LoginPage() {
       })
       setGoogleReady(true)
     }
-
     const existing = document.querySelector('script[data-google-gsi="1"]') as HTMLScriptElement | null
-    if (existing) {
-      if (window.google) onScriptLoad()
-      return
-    }
-
+    if (existing) { if (window.google) onScriptLoad(); return }
     const script = document.createElement('script')
     script.src = 'https://accounts.google.com/gsi/client'
-    script.async = true
-    script.defer = true
+    script.async = true; script.defer = true
     script.setAttribute('data-google-gsi', '1')
     script.onload = onScriptLoad
     script.onerror = () => setError(t('googleSignInFailed'))
@@ -192,162 +194,212 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="absolute top-4 right-4">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-zinc-950">
+
+      {/* ── Background glow orbs ── */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div
+          className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-emerald-500/10 blur-3xl"
+          style={{ animation: 'pulse 6s ease-in-out infinite' }}
+        />
+        <div
+          className="absolute -bottom-40 -right-40 h-[400px] w-[400px] rounded-full bg-violet-600/10 blur-3xl"
+          style={{ animation: 'pulse 8s ease-in-out infinite', animationDelay: '2s' }}
+        />
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-emerald-900/20 blur-3xl"
+          style={{ animation: 'pulse 10s ease-in-out infinite', animationDelay: '1s' }}
+        />
+      </div>
+
+      {/* ── Grid texture overlay ── */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage: 'linear-gradient(#10b981 1px, transparent 1px), linear-gradient(90deg, #10b981 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
+        }}
+      />
+
+      {/* ── Language switcher ── */}
+      <div className="absolute top-4 right-4 z-20">
         <LanguageSwitcherSelect />
       </div>
-      <div className="w-full max-w-sm">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-lg overflow-hidden bg-background border border-border/50 flex items-center justify-center mb-3">
-            <Image
-              src="/brand/mc-logo-128.png"
-              alt="Mission Control logo"
-              width={48}
-              height={48}
-              className="h-full w-full object-cover"
-              priority
-            />
-          </div>
-          <h1 className="text-xl font-semibold text-foreground">{t('missionControl')}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t('signInToContinue')}</p>
-        </div>
 
-        {pendingApproval && (
-          <div className="mb-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center">
-            <div className="flex justify-center mb-2">
-              <svg className="w-8 h-8 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12,6 12,12 16,14" />
-              </svg>
+      {/* ── Card ── */}
+      <div className="relative z-10 w-full max-w-sm mx-4">
+        <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/60 backdrop-blur-xl shadow-2xl shadow-black/50 p-8">
+
+          {/* ── Logo + heading ── */}
+          <div className="flex flex-col items-center mb-8">
+            {/* Glow ring behind logo */}
+            <div className="relative mb-4">
+              <div className="absolute inset-0 rounded-full bg-emerald-500/20 blur-xl scale-150" />
+              <div className="relative w-16 h-16 rounded-2xl bg-zinc-950 border border-emerald-500/30 flex items-center justify-center shadow-lg shadow-emerald-500/10">
+                <MCLogo size={42} />
+              </div>
+              {/* Status dot */}
+              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-zinc-900 shadow shadow-emerald-500/50" />
             </div>
-            <div className="text-sm font-medium text-amber-200">{t('accessRequestSubmitted')}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {t('accessRequestDescription')}
-            </p>
-            <Button
-              onClick={() => { setPendingApproval(false); setError(''); setGoogleLoading(false) }}
-              variant="ghost"
-              size="sm"
-              className="mt-3 text-xs"
-            >
-              {t('tryAgain')}
-            </Button>
-          </div>
-        )}
 
-        {needsSetup && (
-          <div className="mb-4 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 text-center">
-            <div className="flex justify-center mb-2">
-              <svg className="w-8 h-8 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
+            <h1 className="text-2xl font-bold tracking-tight text-white">
+              Mission Control
+            </h1>
+            <p className="text-sm text-zinc-400 mt-1">
+              {t('signInToContinue')}
+            </p>
+
+            {/* Decorative separator */}
+            <div className="mt-4 flex items-center gap-1.5">
+              <div className="h-px w-8 bg-gradient-to-r from-transparent to-emerald-500/50" />
+              <div className="w-1 h-1 rounded-full bg-emerald-500/60" />
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <div className="w-1 h-1 rounded-full bg-emerald-500/60" />
+              <div className="h-px w-8 bg-gradient-to-l from-transparent to-emerald-500/50" />
             </div>
-            <div className="text-sm font-medium text-blue-200">{t('noAdminAccount')}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {t('noAdminDescription')}
-            </p>
-            <Button
-              onClick={() => { window.location.href = '/setup' }}
-              size="sm"
-              className="mt-3"
-            >
-              {t('createAdminAccount')}
-            </Button>
           </div>
-        )}
 
-        {error && (
-          <div role="alert" className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
-            {error}
-          </div>
-        )}
+          {/* ── Pending approval ── */}
+          {pendingApproval && (
+            <div className="mb-5 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
+              <div className="text-2xl mb-2">⏳</div>
+              <div className="text-sm font-medium text-amber-200">{t('accessRequestSubmitted')}</div>
+              <p className="text-xs text-zinc-400 mt-1">{t('accessRequestDescription')}</p>
+              <Button
+                onClick={() => { setPendingApproval(false); setError(''); setGoogleLoading(false) }}
+                variant="ghost"
+                size="sm"
+                className="mt-3 text-xs text-amber-400 hover:text-amber-300"
+              >
+                {t('tryAgain')}
+              </Button>
+            </div>
+          )}
 
-        {/* Google Sign-In button — shown only when client ID is configured */}
-        {googleClientId && (
-          <div className={pendingApproval ? 'opacity-50 pointer-events-none' : ''}>
+          {/* ── Needs setup ── */}
+          {needsSetup && (
+            <div className="mb-5 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-center">
+              <div className="text-2xl mb-2">🔧</div>
+              <div className="text-sm font-medium text-blue-200">{t('noAdminAccount')}</div>
+              <p className="text-xs text-zinc-400 mt-1">{t('noAdminDescription')}</p>
+              <Button
+                onClick={() => { window.location.href = '/setup' }}
+                size="sm"
+                className="mt-3 bg-blue-500 hover:bg-blue-400 text-white"
+              >
+                {t('createAdminAccount')}
+              </Button>
+            </div>
+          )}
+
+          {/* ── Error ── */}
+          {error && (
+            <div role="alert" className="mb-5 p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-sm text-red-300">
+              <svg className="w-4 h-4 shrink-0 text-red-400" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <circle cx="8" cy="8" r="7" />
+                <path d="M8 5v3.5M8 11v.5" />
+              </svg>
+              {error}
+            </div>
+          )}
+
+          {/* ── Google Sign-In ── */}
+          {googleClientId && (
+            <div className={pendingApproval ? 'opacity-50 pointer-events-none' : ''}>
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={!googleReady || googleLoading || loading}
+                className="w-full h-10 flex items-center justify-center gap-3 rounded-xl border border-zinc-700 bg-white text-[#3c4043] text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {googleLoading ? (
+                  <><div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />{t('signingIn')}</>
+                ) : (
+                  <><GoogleIcon className="w-[18px] h-[18px]" />{t('signInWithGoogle')}</>
+                )}
+              </button>
+              {!googleReady && (
+                <p className="text-center text-xs text-zinc-500 mt-2">{t('loadingGoogleSignIn')}</p>
+              )}
+              <div className="my-5 flex items-center gap-3">
+                <div className="h-px flex-1 bg-zinc-800" />
+                <span className="text-xs text-zinc-600">{tc('or')}</span>
+                <div className="h-px flex-1 bg-zinc-800" />
+              </div>
+            </div>
+          )}
+
+          {/* ── Credentials form ── */}
+          <form onSubmit={handleSubmit} className={`space-y-4 ${pendingApproval ? 'opacity-50 pointer-events-none' : ''}`}>
+            <div>
+              <label htmlFor="username" className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">
+                {t('username')}
+              </label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl bg-zinc-800/80 border border-zinc-700/80 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
+                placeholder={t('enterUsername')}
+                autoComplete="username"
+                autoFocus
+                required
+                aria-required="true"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">
+                {t('password')}
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl bg-zinc-800/80 border border-zinc-700/80 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
+                placeholder={t('enterPassword')}
+                autoComplete="current-password"
+                required
+                aria-required="true"
+              />
+            </div>
+
             <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              disabled={!googleReady || googleLoading || loading}
-              className="w-full h-10 flex items-center justify-center gap-3 rounded-lg border border-border bg-white text-[#3c4043] text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              type="submit"
+              disabled={loading}
+              className="w-full h-11 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-zinc-950 font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 mt-2"
             >
-              {googleLoading ? (
+              {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-zinc-900/30 border-t-zinc-900 rounded-full animate-spin" />
                   {t('signingIn')}
                 </>
               ) : (
                 <>
-                  <GoogleIcon className="w-[18px] h-[18px]" />
-                  {t('signInWithGoogle')}
+                  <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 8h10M9 4l4 4-4 4" />
+                  </svg>
+                  {t('signIn')}
                 </>
               )}
             </button>
-            {!googleReady && (
-              <p className="text-center text-xs text-muted-foreground mt-2">{t('loadingGoogleSignIn')}</p>
-            )}
+          </form>
 
-            {/* Divider */}
-            <div className="my-4 flex items-center gap-2">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-xs text-muted-foreground">{tc('or')}</span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
+          {/* ── Footer tagline ── */}
+          <div className="mt-6 pt-5 border-t border-zinc-800/60 flex items-center justify-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <p className="text-center text-xs text-zinc-600">{t('orchestrationTagline')}</p>
           </div>
-        )}
+        </div>
 
-        <form onSubmit={handleSubmit} className={`space-y-4 ${pendingApproval ? 'opacity-50 pointer-events-none' : ''}`}>
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-foreground mb-1.5">{t('username')}</label>
-            <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-smooth"
-              placeholder={t('enterUsername')}
-              autoComplete="username"
-              autoFocus
-              required
-              aria-required="true"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1.5">{t('password')}</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-smooth"
-              placeholder={t('enterPassword')}
-              autoComplete="current-password"
-              required
-              aria-required="true"
-            />
-          </div>
-
-          <Button
-            type="submit"
-            disabled={loading}
-            size="lg"
-            className="w-full rounded-lg"
-          >
-            {loading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                {t('signingIn')}
-              </>
-            ) : (
-              t('signIn')
-            )}
-          </Button>
-        </form>
-
-        <p className="text-center text-xs text-muted-foreground mt-6">{t('orchestrationTagline')}</p>
+        {/* ── Version hint below card ── */}
+        <p className="text-center text-xs text-zinc-700 mt-4">
+          OpenClaw Mission Control
+        </p>
       </div>
     </div>
   )
