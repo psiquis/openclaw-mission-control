@@ -242,9 +242,11 @@ export default function Home() {
       .then(data => {
         if (data?.updateAvailable) {
           setUpdateAvailable({
+            currentVersion: data.currentVersion,
             latestVersion: data.latestVersion,
             releaseUrl: data.releaseUrl,
             releaseNotes: data.releaseNotes,
+            deploymentMode: data.deploymentMode === 'docker' ? 'docker' : 'bare-metal',
           })
         }
       })
