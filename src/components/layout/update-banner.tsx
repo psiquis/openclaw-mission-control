@@ -18,7 +18,7 @@ export function UpdateBanner() {
   if (!updateAvailable) return null
   if (updateDismissedVersion === updateAvailable.latestVersion) return null
 
-  const isDocker = updateAvailable.deploymentMode === 'docker'
+  const isDocker = 'deploymentMode' in updateAvailable && updateAvailable.deploymentMode === 'docker'
 
   async function handleUpdate() {
     // Docker deployments cannot self-update from inside the container —
