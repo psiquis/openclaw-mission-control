@@ -368,6 +368,14 @@ export interface ExecApprovalRequest {
   status: 'pending' | 'approved' | 'denied' | 'expired'
 }
 
+export interface UpdateAvailableInfo {
+  currentVersion: string
+  latestVersion: string
+  releaseUrl: string
+  releaseNotes: string
+  deploymentMode: 'docker' | 'bare-metal'
+}
+
 interface MissionControlStore {
   // Dashboard Mode (local vs full gateway)
   dashboardMode: 'full' | 'local'
@@ -388,9 +396,9 @@ interface MissionControlStore {
   setDefaultOrgName: (name: string) => void
 
   // Update availability
-  updateAvailable: { latestVersion: string; releaseUrl: string; releaseNotes: string } | null
+  updateAvailable: UpdateAvailableInfo | null
   updateDismissedVersion: string | null
-  setUpdateAvailable: (info: { latestVersion: string; releaseUrl: string; releaseNotes: string } | null) => void
+  setUpdateAvailable: (info: UpdateAvailableInfo | null) => void
   dismissUpdate: (version: string) => void
 
   // OpenClaw update availability
