@@ -21,12 +21,11 @@ export function UpdateBanner() {
   const deploymentMode = (updateAvailable as { deploymentMode?: string }).deploymentMode
   const currentVersion = (updateAvailable as { currentVersion?: string }).currentVersion
   const isDocker = deploymentMode === 'docker'
-  const isDocker = 'deploymentMode' in updateAvailable && updateAvailable.deploymentMode === 'docker'
 
   async function handleUpdate() {
     // Docker deployments cannot self-update from inside the container —
     // show instructions to rebuild on the host instead.
-    if (deploymentMode === 'docker') {
+    if (isDocker) {
       setShowDockerInstructions(prev => !prev)
       return
     }
@@ -108,7 +107,7 @@ export function UpdateBanner() {
               onClick={handleUpdate}
               className="text-2xs font-semibold text-zinc-950 bg-emerald-500 hover:bg-emerald-400 active:scale-95 px-3 py-1.5 rounded-lg transition-all shadow shadow-emerald-500/20"
             >
-              {deploymentMode === 'docker' ? '📋 How to update' : tc('updateNow')}
+              {isDocker ? '📋 How to update' : tc('updateNow')}
             </button>
             <a
               href={updateAvailable.releaseUrl}
@@ -141,7 +140,7 @@ export function UpdateBanner() {
       </div>
 
       {/* Docker update instructions — expands inline */}
-      {showDockerInstructions && deploymentMode === 'docker' && (
+      {showDockerInstructions && isDocker && (
         <div className="px-4 pb-4 border-t border-emerald-500/15">
           <p className="text-xs text-zinc-400 mb-2 mt-3">
             Run these commands on your server to update:
