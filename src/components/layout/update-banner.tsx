@@ -20,6 +20,7 @@ export function UpdateBanner() {
 
   const deploymentMode = (updateAvailable as { deploymentMode?: string }).deploymentMode
   const isDocker = deploymentMode === 'docker'
+  const isDocker = 'deploymentMode' in updateAvailable && updateAvailable.deploymentMode === 'docker'
 
   async function handleUpdate() {
     // Docker deployments cannot self-update from inside the container —
