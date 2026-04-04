@@ -41,7 +41,6 @@ const navSections = [
   {
     label: "Infrastructure",
     items: [
-      { href: "/system", label: "System", icon: Cpu },
       { href: "/logs", label: "Live Logs", icon: ScrollText },
       { href: "/terminal", label: "Terminal", icon: TerminalSquare },
       { href: "/git", label: "Git", icon: GitCompareArrows },

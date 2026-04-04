@@ -72,28 +72,27 @@ Built for teams and solo operators running multi-agent OpenClaw setups on Linux 
 <tr>
 <td>
 
-**System Monitor**
-![System](docs/screenshots/system.png)
-
-</td>
-<td>
-
 **Sessions**
 ![Sessions](docs/screenshots/sessions.png)
 
 </td>
-</tr>
-<tr>
 <td>
 
 **File Browser**
 ![Files](docs/screenshots/files.png)
 
 </td>
+</tr>
+<tr>
 <td>
 
 **Memory Search**
 ![Memory](docs/screenshots/memory.png)
+
+</td>
+<td>
+
+&nbsp;
 
 </td>
 </tr>
