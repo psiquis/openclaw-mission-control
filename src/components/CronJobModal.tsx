@@ -1,9 +1,73 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { X, ChevronDown, ChevronUp, Zap, Calendar, Terminal, Settings2 } from "lucide-react";
+import { X, ChevronDown, ChevronUp, Zap, Calendar, Terminal, Settings2, Blocks } from "lucide-react";
 import { cronToHuman, getNextRuns, isValidCron, CRON_PRESETS } from "@/lib/cron-parser";
 import type { CronJob } from "./CronJobCard";
+
+// ---- Skill Selector for Cron (Phase 3) ----
+function SkillSelector({ onSelect }: { onSelect: (skillName: string) => void }) {
+  const [skills, setSkills] = useState<Array<{ id: string; name: string; description: string | null; risk_level: string; category: string; enabled: number }>>([]);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (open && skills.length === 0) {
+      fetch('/api/skills').then(r => r.json()).then(d => {
+        setSkills((d.skills || []).filter((s: { enabled: number }) => s.enabled === 1));
+      }).catch(() => {});
+    }
+  }, [open, skills.length]);
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        style={{
+          display: "flex", alignItems: "center", gap: "0.4rem",
+          padding: "0.4rem 0.75rem", borderRadius: "0.5rem",
+          border: "1px solid var(--border)", background: "var(--surface)",
+          color: "var(--text-secondary)", fontSize: "0.8rem", fontWeight: 500, cursor: "pointer",
+          marginBottom: open ? "0.5rem" : 0,
+        }}
+      >
+        <Blocks className="w-3.5 h-3.5" style={{ color: "var(--accent)" }} />
+        {open ? "Hide skills" : "Insert from skill"}
+        {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+      </button>
+      {open && (
+        <div style={{
+          display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.4rem",
+          maxHeight: "180px", overflowY: "auto", padding: "0.5rem",
+          borderRadius: "0.5rem", border: "1px solid var(--border)", background: "var(--surface)",
+          marginBottom: "0.5rem",
+        }}>
+          {skills.length === 0 && <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", gridColumn: "1/-1" }}>No skills found. Run a scan first.</span>}
+          {skills.map(s => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => { onSelect(s.name); setOpen(false); }}
+              style={{
+                textAlign: "left", padding: "0.5rem", borderRadius: "0.4rem",
+                border: "1px solid var(--border)", background: "var(--background)",
+                cursor: "pointer", fontSize: "0.75rem",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; }}
+            >
+              <div style={{ fontWeight: 600, color: "var(--text-primary)", marginBottom: "2px" }}>{s.name}</div>
+              <div style={{ color: "var(--text-muted)", fontSize: "0.65rem" }}>
+                {s.category}{s.risk_level !== "low" ? ` · ${s.risk_level} risk` : ""}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+// ---- End Skill Selector ----
 
 interface CronJobModalProps {
   isOpen: boolean;
@@ -926,6 +990,16 @@ export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobMod
                 )}
                 {errors.payload && <p style={{ color: "var(--error)", fontSize: "0.75rem", marginTop: "0.25rem" }}>{errors.payload}</p>}
               </div>
+
+              {/* Skill Selector */}
+              {payloadKind === "agentTurn" && (
+                <SkillSelector
+                  onSelect={(skillName) => {
+                    setMessage(`Ejecuta la skill ${skillName}`);
+                    if (errors.message) setErrors(p => ({ ...p, message: "" }));
+                  }}
+                />
+              )}
 
               {/* Message */}
               <div>

@@ -4,51 +4,74 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
+  Gauge,
+  Bot,
+  Bolt,
+  Cpu,
+  ScrollText,
+  TerminalSquare,
+  GitCompareArrows,
+  Route,
   Activity,
-  Timer,
-  Brain,
-  Search,
-  BarChart3,
-  FileBarChart,
-  Puzzle,
-  FolderOpen,
-  Terminal,
+  BrainCircuit,
+  FolderTree,
+  CalendarClock,
+  MessageSquareText,
+  SearchCode,
+  TrendingUp,
+  ClipboardList,
+  Blocks,
+  CircleUser,
   LogOut,
-  Settings,
-  User,
+  Cog,
   Menu,
   X,
-  Users,
-  GitBranch,
-  Workflow,
-  Zap,
-  Server,
-  GitFork,
-  SquareTerminal,
-  History,
+  PanelLeftClose,
 } from "lucide-react";
-import { getAgentDisplayName } from "@/config/branding";
 
-const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/agents", label: "Agents", icon: Users },
-  { href: "/actions", label: "Quick Actions", icon: Zap },
-  { href: "/system", label: "System", icon: Server },
-  { href: "/logs", label: "Live Logs", icon: Terminal },
-  { href: "/terminal", label: "Terminal", icon: SquareTerminal },
-  { href: "/git", label: "Git", icon: GitFork },
-  { href: "/workflows", label: "Workflows", icon: Workflow },
-  { href: "/activity", label: "Activity", icon: Activity },
-  { href: "/memory", label: "Memory", icon: Brain },
-  { href: "/files", label: "Files", icon: FolderOpen },
-  { href: "/cron", label: "Cron Jobs", icon: Timer },
-  { href: "/sessions", label: "Sessions", icon: History },
-  { href: "/search", label: "Search", icon: Search },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/reports", label: "Reports", icon: FileBarChart },
-  { href: "/skills", label: "Skills", icon: Puzzle },
-  { href: "/about", label: getAgentDisplayName(), icon: User },
+const navSections = [
+  {
+    label: "Overview",
+    items: [
+      { href: "/", label: "Dashboard", icon: Gauge },
+      { href: "/agents", label: "Agents", icon: Bot },
+      { href: "/actions", label: "Quick Actions", icon: Bolt },
+    ],
+  },
+  {
+    label: "Infrastructure",
+    items: [
+      { href: "/system", label: "System", icon: Cpu },
+      { href: "/logs", label: "Live Logs", icon: ScrollText },
+      { href: "/terminal", label: "Terminal", icon: TerminalSquare },
+      { href: "/git", label: "Git", icon: GitCompareArrows },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { href: "/workflows", label: "Workflows", icon: Route },
+      { href: "/activity", label: "Activity", icon: Activity },
+      { href: "/cron", label: "Cron Jobs", icon: CalendarClock },
+      { href: "/skills", label: "Skills", icon: Blocks },
+    ],
+  },
+  {
+    label: "Data",
+    items: [
+      { href: "/memory", label: "Memory", icon: BrainCircuit },
+      { href: "/files", label: "Files", icon: FolderTree },
+      { href: "/sessions", label: "Sessions", icon: MessageSquareText },
+    ],
+  },
+  {
+    label: "Intelligence",
+    items: [
+      { href: "/search", label: "Search", icon: SearchCode },
+      { href: "/analytics", label: "Analytics", icon: TrendingUp },
+      { href: "/reports", label: "Reports", icon: ClipboardList },
+    ],
+  },
 ];
 
 export function Sidebar() {
@@ -57,247 +80,183 @@ export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Check if mobile on mount and resize
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth >= 768) {
-        setIsOpen(false);
-      }
+      if (window.innerWidth >= 768) setIsOpen(false);
     };
-    
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Close sidebar when navigating on mobile
   useEffect(() => {
-    if (isMobile) {
-      setIsOpen(false);
-    }
+    if (isMobile) setIsOpen(false);
   }, [pathname, isMobile]);
-
-  // Prevent scroll when sidebar is open on mobile
-  useEffect(() => {
-    if (isOpen && isMobile) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen, isMobile]);
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
-    router.refresh();
   };
-
-  const toggleSidebar = () => setIsOpen(!isOpen);
-  const closeSidebar = () => setIsOpen(false);
 
   return (
     <>
-      {/* Mobile hamburger button */}
-      <button
-        onClick={toggleSidebar}
-        className="mobile-menu-button"
-        aria-label="Toggle menu"
-        style={{
-          position: "fixed",
-          top: "1rem",
-          left: "1rem",
-          zIndex: 60,
-          padding: "0.5rem",
-          borderRadius: "0.5rem",
-          backgroundColor: "var(--card)",
-          border: "1px solid var(--border)",
-          color: "var(--text-primary)",
-          display: isMobile ? "flex" : "none",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-          transition: "all 0.2s ease",
-        }}
-      >
-        <Menu className="w-6 h-6" />
-      </button>
+      {/* Mobile toggle */}
+      {isMobile && !isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="fixed top-3 left-3 z-50 p-2 rounded-lg"
+          style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+        >
+          <Menu className="w-5 h-5" style={{ color: "var(--text-primary)" }} />
+        </button>
+      )}
 
-      {/* Overlay for mobile */}
-      {isMobile && (
+      {/* Overlay */}
+      {isMobile && isOpen && (
         <div
-          onClick={closeSidebar}
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            zIndex: 40,
-            opacity: isOpen ? 1 : 0,
-            pointerEvents: isOpen ? "auto" : "none",
-            transition: "opacity 0.3s ease",
-          }}
+          className="fixed inset-0 z-40"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+          onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className="sidebar"
+        className={`fixed top-0 left-0 h-screen z-50 flex flex-col overflow-y-auto transition-transform duration-200 ${
+          isMobile && !isOpen ? "-translate-x-full" : "translate-x-0"
+        }`}
         style={{
-          position: "fixed",
-          left: 0,
-          top: 0,
-          width: "16rem",
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          padding: "1rem",
-          backgroundColor: "var(--card)",
+          width: "220px",
+          backgroundColor: "var(--surface)",
           borderRight: "1px solid var(--border)",
-          zIndex: 50,
-          transform: isMobile ? (isOpen ? "translateX(0)" : "translateX(-100%)") : "translateX(0)",
-          transition: "transform 0.3s ease",
         }}
       >
-        {/* Close button for mobile */}
-        {isMobile && (
-          <button
-            onClick={closeSidebar}
-            aria-label="Close menu"
-            style={{
-              position: "absolute",
-              top: "1rem",
-              right: "1rem",
-              padding: "0.25rem",
-              borderRadius: "0.375rem",
-              backgroundColor: "transparent",
-              border: "none",
-              color: "var(--text-muted)",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "color 0.2s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "var(--text-primary)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "var(--text-muted)";
-            }}
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
-
-        {/* Logo */}
-        <div className="flex items-center gap-2.5 px-2 py-3 mb-4">
-          <Terminal
-            className="w-6 h-6"
-            style={{ color: "var(--accent)" }}
-          />
-          <h1
-            className="text-base font-bold tracking-tight"
-            style={{
-              fontFamily: "var(--font-heading)",
-              color: "var(--text-primary)",
-              letterSpacing: "-0.5px",
-            }}
-          >
-            Mission Control
-          </h1>
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pt-5 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: "var(--accent)", color: "white" }}
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </div>
+            <h1
+              className="text-sm font-bold tracking-tight"
+              style={{
+                fontFamily: "var(--font-heading)",
+                color: "var(--text-primary)",
+                letterSpacing: "-0.3px",
+              }}
+            >
+              Mission Control
+            </h1>
+          </div>
+          {isMobile && (
+            <button onClick={() => setIsOpen(false)} style={{ color: "var(--text-muted)" }}>
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 pt-4">
-          <ul className="space-y-0.5">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href;
-              const Icon = item.icon;
-
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={`nav-item w-full ${isActive ? "active" : ""}`}
-                    style={
-                      !isActive
-                        ? {
-                            color: "var(--text-secondary)",
+        <nav className="flex-1 px-3 pb-4">
+          {navSections.map((section) => (
+            <div key={section.label} className="mb-4">
+              <p
+                className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider"
+                style={{ color: "var(--text-muted)" }}
+              >
+                {section.label}
+              </p>
+              <ul className="space-y-0.5">
+                {section.items.map((item) => {
+                  const isActive = pathname === item.href;
+                  const Icon = item.icon;
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        className="flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] font-medium transition-colors"
+                        style={
+                          isActive
+                            ? {
+                                backgroundColor: "var(--accent-soft)",
+                                color: "var(--accent)",
+                              }
+                            : {
+                                color: "var(--text-secondary)",
+                              }
+                        }
+                        onMouseEnter={(e) => {
+                          if (!isActive) {
+                            e.currentTarget.style.backgroundColor = "var(--surface-hover)";
+                            e.currentTarget.style.color = "var(--text-primary)";
                           }
-                        : {
-                            backgroundColor: "var(--accent)",
-                            color: "var(--text-primary)",
-                            fontFamily: "var(--font-heading)",
-                            fontWeight: 600,
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive) {
+                            e.currentTarget.style.backgroundColor = "transparent";
+                            e.currentTarget.style.color = "var(--text-secondary)";
                           }
-                    }
-                  >
-                    <Icon
-                      className="w-5 h-5"
-                      style={!isActive ? { color: "var(--text-muted)" } : undefined}
-                    />
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+                        }}
+                      >
+                        <Icon
+                          className="w-[16px] h-[16px]"
+                          style={{ color: isActive ? "var(--accent)" : "var(--text-muted)" }}
+                        />
+                        {item.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
         </nav>
 
         {/* Footer */}
-        <div
-          className="pt-4 mt-4"
-          style={{ borderTop: "1px solid var(--border)" }}
-        >
-          <Link
-            href="/settings"
-            className={`nav-item w-full mb-2 ${pathname === "/settings" ? "active" : ""}`}
-            style={
-              pathname !== "/settings"
-                ? {
-                    color: "var(--text-secondary)",
-                  }
-                : {
-                    backgroundColor: "var(--accent)",
-                    color: "var(--text-primary)",
-                    fontFamily: "var(--font-heading)",
-                    fontWeight: 600,
-                  }
-            }
-          >
-            <Settings
-              className="w-5 h-5"
-              style={pathname !== "/settings" ? { color: "var(--text-muted)" } : undefined}
-            />
-            Settings
-          </Link>
-
-          <div
-            className="px-4 py-2 text-xs"
-            style={{ color: "var(--text-muted)" }}
-          >
-            OpenClaw Agent
+        <div className="px-3 pb-4" style={{ borderTop: "1px solid var(--border)" }}>
+          <div className="pt-3 space-y-0.5">
+            <Link
+              href="/about"
+              className="flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] font-medium"
+              style={{ color: pathname === "/about" ? "var(--accent)" : "var(--text-secondary)" }}
+            >
+              <CircleUser
+                className="w-[16px] h-[16px]"
+                style={{ color: pathname === "/about" ? "var(--accent)" : "var(--text-muted)" }}
+              />
+              About
+            </Link>
+            <Link
+              href="/settings"
+              className="flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] font-medium"
+              style={{ color: pathname === "/settings" ? "var(--accent)" : "var(--text-secondary)" }}
+            >
+              <Cog
+                className="w-[16px] h-[16px]"
+                style={{ color: pathname === "/settings" ? "var(--accent)" : "var(--text-muted)" }}
+              />
+              Settings
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2.5 px-3 py-[7px] w-full rounded-lg text-[13px] font-medium transition-colors"
+              style={{ color: "var(--text-muted)" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--error)";
+                e.currentTarget.style.backgroundColor = "var(--surface-hover)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--text-muted)";
+                e.currentTarget.style.backgroundColor = "transparent";
+              }}
+            >
+              <LogOut className="w-[16px] h-[16px]" />
+              Sign out
+            </button>
           </div>
-
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-2 w-full rounded-lg transition-colors"
-            style={{ color: "var(--text-muted)" }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "var(--error)";
-              e.currentTarget.style.backgroundColor = "var(--card-elevated)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "var(--text-muted)";
-              e.currentTarget.style.backgroundColor = "transparent";
-            }}
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="text-sm">Cerrar sesión</span>
-          </button>
         </div>
       </aside>
     </>
