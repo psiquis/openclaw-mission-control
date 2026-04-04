@@ -97,6 +97,9 @@ export default function DashboardPage() {
   const [netRxHistory, setNetRxHistory] = useState<number[]>([]);
   const [netTxHistory, setNetTxHistory] = useState<number[]>([]);
 
+  // System fullscreen modal
+  const [showSystemFull, setShowSystemFull] = useState(false);
+
   // Initial data load
   useEffect(() => {
     Promise.all([
@@ -174,6 +177,14 @@ export default function DashboardPage() {
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Overview of your OpenClaw agent fleet</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowSystemFull(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}
+          >
+            <Server className="w-3.5 h-3.5" />
+            System Monitor
+          </button>
           <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: "rgba(34,197,94,0.12)", color: "var(--success)" }}>
             <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: "var(--success)" }} />
             Live
@@ -441,6 +452,114 @@ export default function DashboardPage() {
                 <pre style={{ fontFamily: "monospace", fontSize: "0.8rem", color: "#c9d1d9", whiteSpace: "pre-wrap", wordBreak: "break-all", lineHeight: 1.6 }}>{logsModal.content || "No output"}</pre>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* System Monitor Fullscreen Modal */}
+      {showSystemFull && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 900, backgroundColor: "var(--background)", overflow: "auto" }}>
+          <div className="p-4 md:p-8">
+            {/* Header */}
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: "var(--font-heading)", color: "var(--text-primary)" }}>System Monitor</h1>
+                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Real-time server resources and services</p>
+              </div>
+              <button onClick={() => setShowSystemFull(false)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
+                <XIcon className="w-4 h-4" /> Close
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-2 mb-6" style={{ borderBottom: "1px solid var(--border)", paddingBottom: "0.5rem" }}>
+              {(["hardware", "services"] as const).map(t => (
+                <button key={t} onClick={() => setSysTab(t)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors" style={{ backgroundColor: sysTab === t ? "var(--accent-soft)" : "transparent", color: sysTab === t ? "var(--accent)" : "var(--text-secondary)" }}>
+                  {t === "hardware" ? <Cpu className="w-4 h-4" /> : <Server className="w-4 h-4" />}
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            {sysTab === "hardware" && systemData && (
+              <div className="space-y-6">
+                {/* Large metric cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* CPU Large */}
+                  <div className="p-6 rounded-xl" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg" style={{ backgroundColor: "var(--card-elevated)" }}><Cpu className="w-5 h-5" style={{ color: cpuColor }} /></div>
+                        <div><h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>CPU</h3><p className="text-sm" style={{ color: "var(--text-secondary)" }}>{systemData.cpu.cores.length} cores</p></div>
+                      </div>
+                      <span className="text-3xl font-bold font-mono" style={{ color: cpuColor }}>{systemData.cpu.usage}%</span>
+                    </div>
+                    <Sparkline data={cpuHistory} color={cpuColor} height={80} max={100} />
+                    <div className="flex justify-between mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
+                      <span>Load Avg: {systemData.cpu.loadAvg[0].toFixed(2)} / {systemData.cpu.loadAvg[1].toFixed(2)} / {systemData.cpu.loadAvg[2].toFixed(2)}</span>
+                    </div>
+                  </div>
+                  {/* RAM Large */}
+                  <div className="p-6 rounded-xl" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg" style={{ backgroundColor: "var(--card-elevated)" }}><MemoryStick className="w-5 h-5" style={{ color: ramColor }} /></div>
+                        <div><h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>RAM</h3><p className="text-sm" style={{ color: "var(--text-secondary)" }}>{systemData.ram.used.toFixed(1)}GB / {systemData.ram.total.toFixed(1)}GB</p></div>
+                      </div>
+                      <span className="text-3xl font-bold font-mono" style={{ color: ramColor }}>{ramPercent.toFixed(0)}%</span>
+                    </div>
+                    <Sparkline data={ramHistory} color={ramColor} height={80} max={100} />
+                  </div>
+                  {/* Disk Large */}
+                  <div className="p-6 rounded-xl" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg" style={{ backgroundColor: "var(--card-elevated)" }}><HardDrive className="w-5 h-5" style={{ color: diskColor }} /></div>
+                        <div><h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>Disk</h3><p className="text-sm" style={{ color: "var(--text-secondary)" }}>{systemData.disk.used.toFixed(1)}GB / {systemData.disk.total.toFixed(1)}GB</p></div>
+                      </div>
+                      <span className="text-3xl font-bold font-mono" style={{ color: diskColor }}>{systemData.disk.percent.toFixed(0)}%</span>
+                    </div>
+                    <div className="h-3 rounded-full overflow-hidden" style={{ backgroundColor: "var(--card-elevated)" }}>
+                      <div className="h-full transition-all duration-500" style={{ width: `${systemData.disk.percent}%`, backgroundColor: diskColor }} />
+                    </div>
+                  </div>
+                  {/* Network Large */}
+                  <div className="p-6 rounded-xl" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 rounded-lg" style={{ backgroundColor: "var(--card-elevated)" }}><Network className="w-5 h-5" style={{ color: "var(--info)" }} /></div>
+                      <div><h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>Network</h3><p className="text-sm" style={{ color: "var(--text-secondary)" }}>Live I/O</p></div>
+                    </div>
+                    <div className="space-y-2">
+                      <div><div className="flex justify-between text-xs mb-1" style={{ color: "var(--text-secondary)" }}><span><ArrowDown className="w-3 h-3 inline" style={{ color: "var(--success)" }} /> RX</span><span className="font-mono">{systemData.network.rx.toFixed(2)} MB/s</span></div><Sparkline data={netRxHistory} color="#22C55E" height={30} /></div>
+                      <div><div className="flex justify-between text-xs mb-1" style={{ color: "var(--text-secondary)" }}><span><ArrowUp className="w-3 h-3 inline" style={{ color: "var(--accent)" }} /> TX</span><span className="font-mono">{systemData.network.tx.toFixed(2)} MB/s</span></div><Sparkline data={netTxHistory} color="#6366F1" height={30} /></div>
+                    </div>
+                  </div>
+                </div>
+                {/* VPN + Firewall */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="p-5 rounded-xl" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+                    <div className="flex items-center gap-3 mb-4"><Wifi className="w-5 h-5" style={{ color: systemData.tailscale.active ? "var(--success)" : "var(--error)" }} /><div><h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>Tailscale VPN</h3><p className="text-sm" style={{ color: systemData.tailscale.active ? "var(--success)" : "var(--error)" }}>{systemData.tailscale.active ? "Active" : "Inactive"}</p></div></div>
+                    <div className="space-y-2 mb-3"><div className="flex justify-between text-sm"><span style={{ color: "var(--text-secondary)" }}>This server</span><span className="font-mono" style={{ color: "var(--text-primary)" }}>{systemData.tailscale.ip}</span></div><div className="flex justify-between text-sm"><span style={{ color: "var(--text-secondary)" }}>Devices</span><span style={{ color: "var(--text-primary)" }}>{systemData.tailscale.devices.length}</span></div></div>
+                    {systemData.tailscale.devices.length > 0 && <div className="space-y-1.5 pt-3" style={{ borderTop: "1px solid var(--border)" }}>{systemData.tailscale.devices.map((dev, i) => (<div key={i} className="flex items-center justify-between text-xs"><div className="flex items-center gap-2"><Monitor className="w-3 h-3" style={{ color: "var(--text-muted)" }} /><span className="font-mono" style={{ color: "var(--text-secondary)" }}>{dev.hostname} <span style={{ color: "var(--text-muted)" }}>({dev.os})</span></span></div><div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: dev.online ? "var(--success)" : "var(--text-muted)" }} /></div>))}</div>}
+                  </div>
+                  <div className="p-5 rounded-xl" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+                    <div className="flex items-center gap-3 mb-4"><ShieldCheck className="w-5 h-5" style={{ color: systemData.firewall.active ? "var(--success)" : "var(--error)" }} /><div><h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>Firewall (UFW)</h3><p className="text-sm" style={{ color: systemData.firewall.active ? "var(--success)" : "var(--error)" }}>{systemData.firewall.active ? "Active" : "Inactive"}</p></div></div>
+                    <div className="space-y-1.5">{systemData.firewall.rules.map((rule, i) => (<div key={i} className="flex items-center justify-between text-xs py-1" style={{ borderBottom: i < systemData.firewall.rules.length - 1 ? "1px solid var(--border)" : "none" }}><div><span className="font-mono font-semibold" style={{ color: "var(--text-primary)" }}>{rule.port}</span>{rule.comment && <span className="ml-2" style={{ color: "var(--text-muted)", fontSize: "10px" }}>{rule.comment}</span>}</div><span className="font-mono" style={{ color: "var(--text-secondary)" }}>{rule.from}</span></div>))}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {sysTab === "services" && systemData && (
+              <div className="p-6 rounded-xl" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: "var(--text-primary)" }}><Server className="w-5 h-5" style={{ color: "var(--accent)" }} /> Services ({systemData.systemd.filter(s => s.status === 'active').length}/{systemData.systemd.length} active)</h3>
+                <table className="w-full">
+                  <thead><tr style={{ borderBottom: "1px solid var(--border)" }}><th className="text-left py-2 px-3 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>Service</th><th className="text-left py-2 px-3 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>Description</th><th className="text-left py-2 px-3 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>Status</th><th className="text-right py-2 px-3 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>Actions</th></tr></thead>
+                  <tbody>{systemData.systemd.map(svc => { const isAct = svc.backend === 'pm2' || svc.backend === 'systemd'; return (<tr key={svc.name} style={{ borderBottom: "1px solid var(--border)" }}><td className="py-3 px-3"><span className="font-mono font-medium" style={{ color: "var(--text-primary)" }}>{svc.name}</span></td><td className="py-3 px-3"><span className="text-sm" style={{ color: "var(--text-secondary)" }}>{svc.description || '—'}</span>{svc.uptime != null && svc.status === 'active' && <span className="block text-xs" style={{ color: "var(--text-muted)" }}>up {formatUptime(svc.uptime)}{svc.mem != null ? ` · ${formatBytes(svc.mem)}` : ''}</span>}</td><td className="py-3 px-3"><span className="px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: svc.status === 'active' ? 'var(--success-bg)' : svc.status === 'failed' ? 'var(--error-bg)' : 'var(--card-elevated)', color: svc.status === 'active' ? 'var(--success)' : svc.status === 'failed' ? 'var(--error)' : 'var(--text-muted)' }}>{svc.status ===
+ 'not_deployed' ? 'not deployed' : svc.status}</span></td><td className="py-3 px-3"><div className="flex justify-end gap-1">{isAct && (<><button onClick={() => handleServiceAction(svc, "restart")} disabled={actionLoading[`${svc.name}-restart`]} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: "2px" }} title="Restart">{actionLoading[`${svc.name}-restart`] ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCw className="w-4 h-4" />}</button><button onClick={() => handleServiceAction(svc, svc.status === "active" ? "stop" : "start")} disabled={svc.status === "not_deployed"} style={{ background: "none", border: "none", cursor: "pointer", color: svc.status === "active" ? "var(--error)" : "var(--success)", padding: "2px" }}>{svc.status === "active" ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}</button><button onClick={() => handleServiceAction(svc, "logs")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: "2px" }} title="Logs"><TerminalIcon className="w-4 h-4" /></button></>)}</div></td></tr>); })}</tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
