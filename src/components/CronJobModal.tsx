@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, Clock, Calendar, ChevronDown, Zap } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { X, ChevronDown, ChevronUp, Zap, Calendar, Terminal, Settings2 } from "lucide-react";
 import { cronToHuman, getNextRuns, isValidCron, CRON_PRESETS } from "@/lib/cron-parser";
 import type { CronJob } from "./CronJobCard";
 
 interface CronJobModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (job: Partial<CronJob>) => void;
+  onSave: (job: CronJob) => void;
   editingJob?: CronJob | null;
 }
 
@@ -19,33 +19,63 @@ const TIMEZONES = [
   "Asia/Singapore", "Australia/Sydney",
 ];
 
-// Visual builder modes
+const AGENTS = [
+  { id: "", label: "Default", emoji: "🤖" },
+  { id: "ruben", label: "Rubén", emoji: "🧠" },
+  { id: "bill", label: "Bill", emoji: "🖥️" },
+  { id: "elon", label: "Elon", emoji: "🚀" },
+  { id: "quin", label: "Quin", emoji: "⚡" },
+  { id: "trump", label: "Trump", emoji: "📢" },
+  { id: "warren", label: "Warren", emoji: "💰" },
+];
+
+const MODELS = [
+  { value: "", label: "Default" },
+  { value: "opus", label: "Opus" },
+  { value: "sonnet", label: "Sonnet" },
+  { value: "sonnet-4-6", label: "Sonnet 4.6" },
+  { value: "mini", label: "Mini" },
+  { value: "haiku", label: "Haiku" },
+  { value: "gemini-flash", label: "Gemini Flash" },
+  { value: "gemini-pro", label: "Gemini Pro" },
+];
+
+const THINKING_LEVELS = [
+  { value: "", label: "Default" },
+  { value: "off", label: "Off" },
+  { value: "minimal", label: "Minimal" },
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+  { value: "xhigh", label: "Extra High" },
+];
+
+const DELIVERY_CHANNELS = [
+  { value: "telegram", label: "Telegram" },
+  { value: "discord", label: "Discord" },
+  { value: "slack", label: "Slack" },
+  { value: "whatsapp", label: "WhatsApp" },
+];
+
+type ScheduleKind = "cron" | "every" | "at";
+type SessionTarget = "main" | "isolated" | "custom";
+type PayloadKind = "agentTurn" | "systemEvent";
+
+// Visual builder modes for cron
 type FrequencyMode = "every-minutes" | "hourly" | "daily" | "weekly" | "monthly" | "custom";
 
 const FREQUENCY_MODES: Array<{ id: FrequencyMode; label: string; emoji: string }> = [
-  { id: "every-minutes", label: "Every N minutes", emoji: "⏱️" },
+  { id: "every-minutes", label: "Every N min", emoji: "⏱️" },
   { id: "hourly", label: "Hourly", emoji: "🕐" },
   { id: "daily", label: "Daily", emoji: "☀️" },
   { id: "weekly", label: "Weekly", emoji: "📅" },
   { id: "monthly", label: "Monthly", emoji: "🗓️" },
-  { id: "custom", label: "Custom cron", emoji: "⚙️" },
+  { id: "custom", label: "Custom", emoji: "⚙️" },
 ];
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
-
-// Template presets
-const TEMPLATES = [
-  { label: "Daily backup at 3 AM", cron: "0 3 * * *" },
-  { label: "Weekday morning report (9 AM)", cron: "0 9 * * 1-5" },
-  { label: "Hourly health check", cron: "0 * * * *" },
-  { label: "Every 15 minutes", cron: "*/15 * * * *" },
-  { label: "Weekly cleanup (Sunday midnight)", cron: "0 0 * * 0" },
-  { label: "First of month report", cron: "0 8 1 * *" },
-  { label: "Every 5 minutes", cron: "*/5 * * * *" },
-  { label: "Twice daily (9 AM & 9 PM)", cron: "0 9,21 * * *" },
-];
+const MINUTES_OPTIONS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
 function buildCron(mode: FrequencyMode, opts: Record<string, number | number[]>): string {
   switch (mode) {
@@ -66,61 +96,322 @@ function buildCron(mode: FrequencyMode, opts: Record<string, number | number[]>)
   }
 }
 
+function formatEveryDuration(value: number, unit: string): string {
+  return `${value}${unit}`;
+}
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "0.6rem 0.75rem",
+  backgroundColor: "var(--card-elevated)",
+  border: "1px solid var(--border)",
+  borderRadius: "0.5rem",
+  color: "var(--text-primary)",
+  outline: "none",
+  fontSize: "0.85rem",
+};
+
+const selectStyle: React.CSSProperties = {
+  ...inputStyle,
+  cursor: "pointer",
+};
+
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  fontSize: "0.8rem",
+  fontWeight: 600,
+  color: "var(--text-secondary)",
+  marginBottom: "0.375rem",
+};
+
+const sectionStyle: React.CSSProperties = {
+  padding: "1rem",
+  backgroundColor: "var(--card-elevated)",
+  borderRadius: "0.75rem",
+  border: "1px solid var(--border)",
+};
+
 export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobModalProps) {
+  // Section 1: Basic info
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [schedule, setSchedule] = useState("0 9 * * *");
-  const [timezone, setTimezone] = useState("Europe/Madrid");
-  const [frequencyMode, setFrequencyMode] = useState<FrequencyMode>("daily");
-  const [showPresets, setShowPresets] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSaving, setIsSaving] = useState(false);
 
-  // Visual builder state
+  // Section 2: Schedule
+  const [scheduleKind, setScheduleKind] = useState<ScheduleKind>("cron");
+  const [cronExpr, setCronExpr] = useState("0 9 * * *");
+  const [frequencyMode, setFrequencyMode] = useState<FrequencyMode>("daily");
   const [everyMinutes, setEveryMinutes] = useState(15);
   const [selectedHour, setSelectedHour] = useState(9);
   const [selectedMinute, setSelectedMinute] = useState(0);
-  const [selectedDays, setSelectedDays] = useState<number[]>([1]); // Monday
+  const [selectedDays, setSelectedDays] = useState<number[]>([1]);
   const [selectedDayOfMonth, setSelectedDayOfMonth] = useState(1);
+  const [everyValue, setEveryValue] = useState(10);
+  const [everyUnit, setEveryUnit] = useState("m");
+  const [atDate, setAtDate] = useState("");
+  const [atTime, setAtTime] = useState("09:00");
+  const [timezone, setTimezone] = useState("Europe/Madrid");
 
+  // Section 3: Execution
+  const [agentId, setAgentId] = useState("");
+  const [sessionTarget, setSessionTarget] = useState<SessionTarget>("isolated");
+  const [customSession, setCustomSession] = useState("");
+  const [payloadKind, setPayloadKind] = useState<PayloadKind>("agentTurn");
+  const [message, setMessage] = useState("");
+
+  // Section 4: Advanced
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [model, setModel] = useState("");
+  const [thinking, setThinking] = useState("");
+  const [timeoutSeconds, setTimeoutSeconds] = useState(30);
+  const [lightContext, setLightContext] = useState(false);
+  const [tools, setTools] = useState("");
+  const [exact, setExact] = useState(false);
+  const [announce, setAnnounce] = useState<boolean | null>(null);
+  const [deliveryChannel, setDeliveryChannel] = useState("");
+  const [deliveryTo, setDeliveryTo] = useState("");
+  const [deleteAfterRun, setDeleteAfterRun] = useState(false);
+
+  // UI state
+  const [showPresets, setShowPresets] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Auto-set payload kind based on session
   useEffect(() => {
-    if (isOpen) {
-      if (editingJob) {
-        setName(editingJob.name);
-        setDescription(editingJob.description);
-        setSchedule(typeof editingJob.schedule === "string" ? editingJob.schedule : String(editingJob.schedule));
-        setTimezone(editingJob.timezone);
-        setFrequencyMode("custom");
-      } else {
-        setName("");
-        setDescription("");
-        setSchedule("0 9 * * *");
-        setTimezone("Europe/Madrid");
-        setFrequencyMode("daily");
-      }
-      setErrors({});
+    if (sessionTarget === "main") {
+      setPayloadKind("systemEvent");
+    } else if (sessionTarget === "isolated") {
+      setPayloadKind("agentTurn");
     }
-  }, [isOpen, editingJob]);
+  }, [sessionTarget]);
 
-  // Update schedule when visual builder changes
+  // Auto-fill delivery based on agent selection
   useEffect(() => {
-    if (frequencyMode === "custom") return;
-    const newSchedule = buildCron(frequencyMode, {
+    if (agentId && announce !== false) {
+      setDeliveryChannel("telegram");
+      setDeliveryTo("257725883");
+      if (announce === null) setAnnounce(true);
+    }
+  }, [agentId]);
+
+  // Update cronExpr when visual builder changes
+  useEffect(() => {
+    if (scheduleKind !== "cron" || frequencyMode === "custom") return;
+    const newCron = buildCron(frequencyMode, {
       minutes: everyMinutes,
       minute: selectedMinute,
       hour: selectedHour,
       days: selectedDays,
       day: selectedDayOfMonth,
     });
-    setSchedule(newSchedule);
-  }, [frequencyMode, everyMinutes, selectedHour, selectedMinute, selectedDays, selectedDayOfMonth]);
+    setCronExpr(newCron);
+  }, [scheduleKind, frequencyMode, everyMinutes, selectedHour, selectedMinute, selectedDays, selectedDayOfMonth]);
+
+  // Populate from editingJob
+  useEffect(() => {
+    if (!isOpen) return;
+    if (editingJob) {
+      setName(editingJob.name || "");
+      setDescription(editingJob.description || "");
+      setTimezone(editingJob.timezone || "Europe/Madrid");
+      setAgentId(editingJob.agentId || "");
+      setMessage(editingJob.message || editingJob.description || "");
+
+      // Parse schedule
+      const sched = editingJob.schedule as Record<string, unknown>;
+      if (sched && typeof sched === "object") {
+        if (sched.kind === "cron") {
+          setScheduleKind("cron");
+          setCronExpr((sched.expr as string) || "0 9 * * *");
+          setFrequencyMode("custom");
+        } else if (sched.kind === "every") {
+          setScheduleKind("every");
+          const ms = sched.everyMs as number;
+          if (ms >= 3600000) {
+            setEveryValue(ms / 3600000);
+            setEveryUnit("h");
+          } else {
+            setEveryValue(ms / 60000);
+            setEveryUnit("m");
+          }
+        } else if (sched.kind === "at") {
+          setScheduleKind("at");
+          const atStr = sched.at as string;
+          if (atStr) {
+            const d = new Date(atStr);
+            setAtDate(d.toISOString().split("T")[0]);
+            setAtTime(d.toISOString().split("T")[1]?.substring(0, 5) || "09:00");
+          }
+        }
+      } else if (typeof editingJob.schedule === "string") {
+        setScheduleKind("cron");
+        setCronExpr(editingJob.schedule);
+        setFrequencyMode("custom");
+      }
+
+      // Session
+      const st = editingJob.sessionTarget || "isolated";
+      if (st === "main") setSessionTarget("main");
+      else if (st === "isolated") setSessionTarget("isolated");
+      else {
+        setSessionTarget("custom");
+        setCustomSession(st.replace("session:", ""));
+      }
+
+      // Payload
+      if (editingJob.payloadKind === "systemEvent") setPayloadKind("systemEvent");
+      else setPayloadKind("agentTurn");
+
+      // Advanced
+      if (editingJob.model) { setModel(editingJob.model); setShowAdvanced(true); }
+      if (editingJob.thinking) { setThinking(editingJob.thinking); setShowAdvanced(true); }
+      if (editingJob.lightContext) { setLightContext(true); setShowAdvanced(true); }
+      if (editingJob.tools) { setTools(editingJob.tools); setShowAdvanced(true); }
+      if (editingJob.deliveryChannel) { setDeliveryChannel(editingJob.deliveryChannel); setShowAdvanced(true); }
+      if (editingJob.deliveryTo) { setDeliveryTo(editingJob.deliveryTo); setShowAdvanced(true); }
+    } else {
+      // Reset for create
+      setName("");
+      setDescription("");
+      setScheduleKind("cron");
+      setCronExpr("0 9 * * *");
+      setFrequencyMode("daily");
+      setEveryMinutes(15);
+      setSelectedHour(9);
+      setSelectedMinute(0);
+      setSelectedDays([1]);
+      setSelectedDayOfMonth(1);
+      setEveryValue(10);
+      setEveryUnit("m");
+      setAtDate("");
+      setAtTime("09:00");
+      setTimezone("Europe/Madrid");
+      setAgentId("");
+      setSessionTarget("isolated");
+      setCustomSession("");
+      setPayloadKind("agentTurn");
+      setMessage("");
+      setShowAdvanced(false);
+      setModel("");
+      setThinking("");
+      setTimeoutSeconds(30);
+      setLightContext(false);
+      setTools("");
+      setExact(false);
+      setAnnounce(null);
+      setDeliveryChannel("");
+      setDeliveryTo("");
+      setDeleteAfterRun(false);
+    }
+    setErrors({});
+  }, [isOpen, editingJob]);
+
+  const toggleDay = (day: number) => {
+    setSelectedDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort()
+    );
+  };
+
+  // Computed: next runs for preview
+  const nextRuns = useMemo(() => {
+    if (scheduleKind === "cron" && isValidCron(cronExpr)) {
+      return getNextRuns(cronExpr, 5);
+    }
+    if (scheduleKind === "every") {
+      const nowMs = Date.now();
+      const intervalMs = everyValue * (everyUnit === "h" ? 3600000 : 60000);
+      return Array.from({ length: 5 }, (_, i) => new Date(nowMs + intervalMs * (i + 1)));
+    }
+    if (scheduleKind === "at" && atDate && atTime) {
+      const d = new Date(`${atDate}T${atTime}`);
+      return d.getTime() > Date.now() ? [d] : [];
+    }
+    return [];
+  }, [scheduleKind, cronExpr, everyValue, everyUnit, atDate, atTime]);
+
+  // Computed: CLI command preview
+  const cliPreview = useMemo(() => {
+    const parts = ["openclaw cron add"];
+    if (name) parts.push(`--name "${name}"`);
+    if (scheduleKind === "cron") parts.push(`--cron "${cronExpr}"`);
+    else if (scheduleKind === "every") parts.push(`--every ${formatEveryDuration(everyValue, everyUnit)}`);
+    else if (scheduleKind === "at" && atDate && atTime) parts.push(`--at "${atDate}T${atTime}:00"`);
+    if (timezone) parts.push(`--tz ${timezone}`);
+    const resolvedSession = sessionTarget === "custom" ? `session:${customSession}` : sessionTarget;
+    if (resolvedSession) parts.push(`--session ${resolvedSession}`);
+    if (agentId) parts.push(`--agent ${agentId}`);
+    if (payloadKind === "agentTurn" && message) parts.push(`--message "${message.substring(0, 60)}${message.length > 60 ? "..." : ""}"`);
+    else if (payloadKind === "systemEvent" && message) parts.push(`--system-event "${message.substring(0, 60)}${message.length > 60 ? "..." : ""}"`);
+    if (model) parts.push(`--model ${model}`);
+    if (thinking) parts.push(`--thinking ${thinking}`);
+    if (timeoutSeconds !== 30) parts.push(`--timeout-seconds ${timeoutSeconds}`);
+    if (lightContext) parts.push("--light-context");
+    if (tools) parts.push(`--tools ${tools}`);
+    if (exact) parts.push("--exact");
+    if (announce === true) parts.push("--announce");
+    if (announce === false) parts.push("--no-deliver");
+    if (deliveryChannel) parts.push(`--channel ${deliveryChannel}`);
+    if (deliveryTo) parts.push(`--to "${deliveryTo}"`);
+    if (deleteAfterRun) parts.push("--delete-after-run");
+    return parts.join(" \\\n  ");
+  }, [name, scheduleKind, cronExpr, everyValue, everyUnit, atDate, atTime, timezone, sessionTarget, customSession, agentId, payloadKind, message, model, thinking, timeoutSeconds, lightContext, tools, exact, announce, deliveryChannel, deliveryTo, deleteAfterRun]);
+
+  // Human-readable schedule
+  const scheduleHuman = useMemo(() => {
+    if (scheduleKind === "cron" && isValidCron(cronExpr)) return cronToHuman(cronExpr);
+    if (scheduleKind === "every") return `Every ${everyValue}${everyUnit === "h" ? " hours" : " minutes"}`;
+    if (scheduleKind === "at" && atDate && atTime) return `Once at ${atDate} ${atTime}`;
+    return "—";
+  }, [scheduleKind, cronExpr, everyValue, everyUnit, atDate, atTime]);
+
+  const sectionStatus = useMemo(() => {
+    const nameOk = name.trim().length > 0;
+
+    let scheduleOk = false;
+    if (scheduleKind === "cron") scheduleOk = isValidCron(cronExpr);
+    else if (scheduleKind === "every") scheduleOk = everyValue > 0;
+    else if (scheduleKind === "at") scheduleOk = !!(atDate && atTime);
+
+    const messageOk = message.trim().length > 0;
+    const sessionOk = sessionTarget !== "custom" || customSession.trim().length > 0;
+
+    // Check for incompatible combinations
+    const payloadCompatible = sessionTarget === "main"
+      ? payloadKind === "systemEvent"
+      : sessionTarget === "isolated"
+      ? payloadKind === "agentTurn"
+      : true;
+
+    const deliveryOk = announce !== true || (!!deliveryChannel && !!deliveryTo);
+
+    return {
+      basic: nameOk,
+      schedule: scheduleOk,
+      execution: messageOk && sessionOk && payloadCompatible,
+      canSubmit: nameOk && scheduleOk && messageOk && sessionOk && payloadCompatible && deliveryOk,
+    };
+  }, [name, scheduleKind, cronExpr, everyValue, atDate, atTime, message, sessionTarget, customSession, payloadKind]);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!name.trim()) newErrors.name = "Name is required";
-    if (!schedule.trim()) newErrors.schedule = "Schedule is required";
-    else if (!isValidCron(schedule)) newErrors.schedule = "Invalid cron expression";
+    if (!name.trim()) newErrors.name = "El nombre es obligatorio";
+    if (scheduleKind === "cron" && !isValidCron(cronExpr)) newErrors.schedule = "Expresión cron inválida";
+    if (scheduleKind === "every" && everyValue <= 0) newErrors.schedule = "El intervalo debe ser mayor que 0";
+    if (scheduleKind === "at" && (!atDate || !atTime)) newErrors.schedule = "Fecha y hora son obligatorios";
+    if (!message.trim()) {
+      if (sessionTarget === "main") {
+        newErrors.message = "El texto del evento de sistema es obligatorio para sesiones Main";
+      } else {
+        newErrors.message = "El mensaje/prompt para el agente es obligatorio";
+      }
+    }
+    if (sessionTarget === "custom" && !customSession.trim()) newErrors.session = "La clave de sesión personalizada es obligatoria";
+    if (sessionTarget === "main" && payloadKind !== "systemEvent") {
+      newErrors.payload = "Las sesiones Main solo admiten System Event. Cambia el tipo de payload.";
+    }
+    if (sessionTarget === "isolated" && payloadKind !== "agentTurn") {
+      newErrors.payload = "Las sesiones Isolated solo admiten Agent Turn. Cambia el tipo de payload.";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -129,411 +420,780 @@ export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobMod
     e.preventDefault();
     if (!validate()) return;
     setIsSaving(true);
+
+    const resolvedSession = sessionTarget === "custom" ? `session:${customSession}` : sessionTarget;
+
+    const payload: Record<string, unknown> = {
+      name: name.trim(),
+      description: description.trim(),
+      scheduleKind,
+      timezone,
+      sessionTarget: resolvedSession,
+      payloadKind,
+      agentId: agentId || undefined,
+    };
+
+    // Schedule
+    if (scheduleKind === "cron") payload.cronExpr = cronExpr;
+    else if (scheduleKind === "every") payload.every = formatEveryDuration(everyValue, everyUnit);
+    else if (scheduleKind === "at") payload.at = `${atDate}T${atTime}:00`;
+
+    // Payload content
+    if (payloadKind === "agentTurn") payload.message = message.trim();
+    else payload.systemEvent = message.trim();
+
+    // Advanced
+    if (model) payload.model = model;
+    if (thinking) payload.thinking = thinking;
+    if (timeoutSeconds !== 30) payload.timeoutSeconds = timeoutSeconds;
+    if (lightContext) payload.lightContext = true;
+    if (tools) payload.tools = tools;
+    if (exact) payload.exact = true;
+    if (announce === true) payload.announce = true;
+    if (announce === false) payload.announce = false;
+    if (deliveryChannel) payload.deliveryChannel = deliveryChannel;
+    if (deliveryTo) payload.deliveryTo = deliveryTo;
+    if (agentId && announce === true) payload.deliveryAccount = agentId;
+    if (deleteAfterRun) payload.deleteAfterRun = true;
+
     try {
-      await onSave({
-        id: editingJob?.id,
-        name: name.trim(),
-        description: description.trim(),
-        schedule: schedule.trim(),
-        timezone,
-        enabled: editingJob?.enabled ?? true,
+      const isEdit = !!editingJob?.id;
+      const url = "/api/cron";
+      const method = isEdit ? "PATCH" : "POST";
+      if (isEdit) payload.id = editingJob!.id;
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to save");
+      }
+
+      onSave(editingJob || ({} as CronJob));
       onClose();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error al guardar";
+      // Extract the actual OpenClaw error if it's embedded
+      const match = msg.match(/Error:\s*(.+?)(\n|$)/);
+      const cleanMsg = match ? match[1] : msg;
+      setErrors({ submit: `❌ ${cleanMsg}` });
     } finally {
       setIsSaving(false);
     }
   };
-
-  const toggleDay = (day: number) => {
-    setSelectedDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort()
-    );
-  };
-
-  const nextRuns = isValidCron(schedule) ? getNextRuns(schedule, 5) : [];
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-
-      <div className="relative w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-2xl shadow-2xl mx-4"
-        style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
-
+      <div
+        className="relative w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-2xl shadow-2xl mx-4"
+        style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
+      >
         {/* Header */}
-        <div className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between"
-          style={{ backgroundColor: "var(--card)", borderBottom: "1px solid var(--border)" }}>
+        <div
+          className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between"
+          style={{ backgroundColor: "var(--card)", borderBottom: "1px solid var(--border)" }}
+        >
           <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
             {editingJob ? "✏️ Edit Cron Job" : "➕ Create Cron Job"}
           </h2>
-          <button onClick={onClose} className="p-2 rounded-lg transition-colors"
-            style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer" }}>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg transition-colors"
+            style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer" }}
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-              Job Name *
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => { setName(e.target.value); if (errors.name) setErrors((p) => ({ ...p, name: "" })); }}
-              placeholder="e.g., Daily Backup"
-              style={{
-                width: "100%", padding: "0.75rem 1rem",
-                backgroundColor: "var(--card-elevated)",
-                border: `1px solid ${errors.name ? "var(--error)" : "var(--border)"}`,
-                borderRadius: "0.5rem", color: "var(--text-primary)", outline: "none",
-                fontSize: "0.9rem",
-              }}
-            />
-            {errors.name && <p className="mt-1 text-sm" style={{ color: "var(--error)" }}>{errors.name}</p>}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* ===== Section 1: Basic Info ===== */}
+          <div style={sectionStyle}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
+              <span style={{
+                width: "8px", height: "8px", borderRadius: "50%",
+                backgroundColor: sectionStatus.basic ? "#22c55e" : "#ef4444",
+                transition: "background-color 0.3s",
+                flexShrink: 0,
+              }} />
+              <span style={{ fontSize: "0.9rem" }}>📝</span>
+              <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text-primary)" }}>Basic Info</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              <div>
+                <label style={labelStyle}>Name *</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => { setName(e.target.value); if (errors.name) setErrors(p => ({ ...p, name: "" })); }}
+                  placeholder="e.g., Daily Backup Report"
+                  style={{ ...inputStyle, borderColor: errors.name ? "var(--error)" : "var(--border)" }}
+                />
+                {errors.name && <p style={{ color: "var(--error)", fontSize: "0.75rem", marginTop: "0.25rem" }}>{errors.name}</p>}
+              </div>
+              <div>
+                <label style={labelStyle}>Description</label>
+                <input
+                  type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Optional: what does this job do?"
+                  style={inputStyle}
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="What does this job do?"
-              rows={2}
-              style={{
-                width: "100%", padding: "0.75rem 1rem",
-                backgroundColor: "var(--card-elevated)",
-                border: "1px solid var(--border)",
-                borderRadius: "0.5rem", color: "var(--text-primary)", outline: "none",
-                fontSize: "0.9rem", resize: "none",
-              }}
-            />
-          </div>
+          {/* ===== Section 2: Schedule ===== */}
+          <div style={sectionStyle}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
+              <span style={{
+                width: "8px", height: "8px", borderRadius: "50%",
+                backgroundColor: sectionStatus.schedule ? "#22c55e" : "#ef4444",
+                transition: "background-color 0.3s",
+                flexShrink: 0,
+              }} />
+              <span style={{ fontSize: "0.9rem" }}>⏰</span>
+              <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text-primary)" }}>Schedule</span>
+            </div>
 
-          {/* Frequency Builder */}
-          <div>
-            <label className="block text-sm font-medium mb-3" style={{ color: "var(--text-secondary)" }}>
-              Frequency
-            </label>
-
-            {/* Mode selector */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
-              {FREQUENCY_MODES.map((mode) => (
+            {/* Schedule kind tabs */}
+            <div style={{ display: "flex", gap: "0.375rem", marginBottom: "1rem" }}>
+              {(["cron", "every", "at"] as const).map((kind) => (
                 <button
-                  key={mode.id}
+                  key={kind}
                   type="button"
-                  onClick={() => setFrequencyMode(mode.id)}
+                  onClick={() => setScheduleKind(kind)}
                   style={{
-                    padding: "0.375rem 0.875rem",
-                    borderRadius: "9999px",
+                    flex: 1,
+                    padding: "0.5rem",
+                    borderRadius: "0.5rem",
                     fontSize: "0.8rem",
-                    fontWeight: 500,
+                    fontWeight: 600,
                     border: "1px solid",
                     cursor: "pointer",
-                    backgroundColor: frequencyMode === mode.id ? "rgba(255,59,48,0.15)" : "var(--card-elevated)",
-                    color: frequencyMode === mode.id ? "var(--accent)" : "var(--text-secondary)",
-                    borderColor: frequencyMode === mode.id ? "rgba(255,59,48,0.4)" : "var(--border)",
+                    backgroundColor: scheduleKind === kind ? "rgba(255,59,48,0.15)" : "var(--card)",
+                    color: scheduleKind === kind ? "var(--accent)" : "var(--text-secondary)",
+                    borderColor: scheduleKind === kind ? "rgba(255,59,48,0.4)" : "var(--border)",
                     transition: "all 0.15s",
                   }}
                 >
-                  {mode.emoji} {mode.label}
+                  {kind === "cron" ? "🔄 Recurring" : kind === "every" ? "⏱️ Interval" : "📌 One-shot"}
                 </button>
               ))}
             </div>
 
-            {/* Visual controls per mode */}
-            {frequencyMode === "every-minutes" && (
-              <div style={{ padding: "1rem", backgroundColor: "var(--card-elevated)", borderRadius: "0.75rem" }}>
-                <label className="block text-sm mb-2" style={{ color: "var(--text-secondary)" }}>Every</label>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                  <input
-                    type="range" min={1} max={60} value={everyMinutes}
-                    onChange={(e) => setEveryMinutes(Number(e.target.value))}
-                    style={{ flex: 1, accentColor: "var(--accent)" }}
-                  />
-                  <span style={{ fontWeight: 700, color: "var(--accent)", minWidth: "4rem", textAlign: "center" }}>
-                    {everyMinutes} min
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {frequencyMode === "hourly" && (
-              <div style={{ padding: "1rem", backgroundColor: "var(--card-elevated)", borderRadius: "0.75rem" }}>
-                <label className="block text-sm mb-2" style={{ color: "var(--text-secondary)" }}>At minute</label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                  {MINUTES.map((m) => (
-                    <button key={m} type="button" onClick={() => setSelectedMinute(m)}
+            {/* Cron builder */}
+            {scheduleKind === "cron" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                {/* Frequency mode pills */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
+                  {FREQUENCY_MODES.map((mode) => (
+                    <button
+                      key={mode.id}
+                      type="button"
+                      onClick={() => setFrequencyMode(mode.id)}
                       style={{
-                        padding: "0.375rem 0.75rem", borderRadius: "0.5rem", fontSize: "0.85rem",
-                        backgroundColor: selectedMinute === m ? "var(--accent)" : "var(--card)",
-                        color: selectedMinute === m ? "#000" : "var(--text-secondary)",
-                        border: "1px solid var(--border)", cursor: "pointer",
-                      }}>
-                      :{String(m).padStart(2, "0")}
+                        padding: "0.3rem 0.625rem",
+                        borderRadius: "9999px",
+                        fontSize: "0.75rem",
+                        fontWeight: 500,
+                        border: "1px solid",
+                        cursor: "pointer",
+                        backgroundColor: frequencyMode === mode.id ? "rgba(255,59,48,0.12)" : "var(--card)",
+                        color: frequencyMode === mode.id ? "var(--accent)" : "var(--text-muted)",
+                        borderColor: frequencyMode === mode.id ? "rgba(255,59,48,0.3)" : "var(--border)",
+                      }}
+                    >
+                      {mode.emoji} {mode.label}
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
 
-            {(frequencyMode === "daily" || frequencyMode === "weekly" || frequencyMode === "monthly") && (
-              <div style={{ padding: "1rem", backgroundColor: "var(--card-elevated)", borderRadius: "0.75rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-                <div>
-                  <label className="block text-sm mb-2" style={{ color: "var(--text-secondary)" }}>At time</label>
-                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                    <select value={selectedHour} onChange={(e) => setSelectedHour(Number(e.target.value))}
-                      style={{ padding: "0.5rem 0.75rem", backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "0.5rem", color: "var(--text-primary)", outline: "none" }}>
-                      {HOURS.map((h) => (
-                        <option key={h} value={h}>{String(h).padStart(2, "0")}</option>
-                      ))}
-                    </select>
-                    <span style={{ color: "var(--text-muted)" }}>:</span>
-                    <select value={selectedMinute} onChange={(e) => setSelectedMinute(Number(e.target.value))}
-                      style={{ padding: "0.5rem 0.75rem", backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "0.5rem", color: "var(--text-primary)", outline: "none" }}>
-                      {MINUTES.map((m) => (
-                        <option key={m} value={m}>{String(m).padStart(2, "0")}</option>
-                      ))}
-                    </select>
+                {/* Visual controls */}
+                {frequencyMode === "every-minutes" && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                    <label style={{ ...labelStyle, marginBottom: 0, whiteSpace: "nowrap" }}>Every</label>
+                    <input
+                      type="range" min={1} max={60} value={everyMinutes}
+                      onChange={(e) => setEveryMinutes(Number(e.target.value))}
+                      style={{ flex: 1, accentColor: "var(--accent)" }}
+                    />
+                    <span style={{ fontWeight: 700, color: "var(--accent)", minWidth: "4rem", textAlign: "center", fontSize: "0.85rem" }}>
+                      {everyMinutes} min
+                    </span>
                   </div>
-                </div>
+                )}
 
-                {frequencyMode === "weekly" && (
+                {frequencyMode === "hourly" && (
                   <div>
-                    <label className="block text-sm mb-2" style={{ color: "var(--text-secondary)" }}>On days</label>
-                    <div style={{ display: "flex", gap: "0.375rem" }}>
-                      {WEEKDAYS.map((day, i) => (
-                        <button key={day} type="button" onClick={() => toggleDay(i)}
+                    <label style={labelStyle}>At minute</label>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
+                      {MINUTES_OPTIONS.map((m) => (
+                        <button key={m} type="button" onClick={() => setSelectedMinute(m)}
                           style={{
-                            flex: 1, padding: "0.5rem 0", borderRadius: "0.5rem", fontSize: "0.75rem",
-                            fontWeight: selectedDays.includes(i) ? 700 : 400,
-                            backgroundColor: selectedDays.includes(i) ? "var(--accent)" : "var(--card)",
-                            color: selectedDays.includes(i) ? "#000" : "var(--text-secondary)",
+                            padding: "0.3rem 0.625rem", borderRadius: "0.375rem", fontSize: "0.8rem",
+                            backgroundColor: selectedMinute === m ? "var(--accent)" : "var(--card)",
+                            color: selectedMinute === m ? "#000" : "var(--text-secondary)",
                             border: "1px solid var(--border)", cursor: "pointer",
                           }}>
-                          {day}
+                          :{String(m).padStart(2, "0")}
                         </button>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {frequencyMode === "monthly" && (
-                  <div>
-                    <label className="block text-sm mb-2" style={{ color: "var(--text-secondary)" }}>On day of month</label>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                      <input
-                        type="range" min={1} max={28} value={selectedDayOfMonth}
-                        onChange={(e) => setSelectedDayOfMonth(Number(e.target.value))}
-                        style={{ flex: 1, accentColor: "var(--accent)" }}
-                      />
-                      <span style={{ fontWeight: 700, color: "var(--accent)", minWidth: "3rem", textAlign: "center" }}>
-                        Day {selectedDayOfMonth}
-                      </span>
+                {(frequencyMode === "daily" || frequencyMode === "weekly" || frequencyMode === "monthly") && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    <div>
+                      <label style={labelStyle}>At time</label>
+                      <div style={{ display: "flex", gap: "0.375rem", alignItems: "center" }}>
+                        <select value={selectedHour} onChange={(e) => setSelectedHour(Number(e.target.value))}
+                          style={{ ...selectStyle, width: "auto" }}>
+                          {HOURS.map((h) => <option key={h} value={h}>{String(h).padStart(2, "0")}</option>)}
+                        </select>
+                        <span style={{ color: "var(--text-muted)", fontWeight: 700 }}>:</span>
+                        <select value={selectedMinute} onChange={(e) => setSelectedMinute(Number(e.target.value))}
+                          style={{ ...selectStyle, width: "auto" }}>
+                          {MINUTES_OPTIONS.map((m) => <option key={m} value={m}>{String(m).padStart(2, "0")}</option>)}
+                        </select>
+                      </div>
                     </div>
+                    {frequencyMode === "weekly" && (
+                      <div>
+                        <label style={labelStyle}>On days</label>
+                        <div style={{ display: "flex", gap: "0.25rem" }}>
+                          {WEEKDAYS.map((day, i) => (
+                            <button key={day} type="button" onClick={() => toggleDay(i)}
+                              style={{
+                                flex: 1, padding: "0.4rem 0", borderRadius: "0.375rem", fontSize: "0.7rem",
+                                fontWeight: selectedDays.includes(i) ? 700 : 400,
+                                backgroundColor: selectedDays.includes(i) ? "var(--accent)" : "var(--card)",
+                                color: selectedDays.includes(i) ? "#000" : "var(--text-secondary)",
+                                border: "1px solid var(--border)", cursor: "pointer",
+                              }}>
+                              {day}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {frequencyMode === "monthly" && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                        <label style={{ ...labelStyle, marginBottom: 0 }}>Day</label>
+                        <input type="range" min={1} max={28} value={selectedDayOfMonth}
+                          onChange={(e) => setSelectedDayOfMonth(Number(e.target.value))}
+                          style={{ flex: 1, accentColor: "var(--accent)" }}
+                        />
+                        <span style={{ fontWeight: 700, color: "var(--accent)", minWidth: "3rem", textAlign: "center", fontSize: "0.85rem" }}>
+                          Day {selectedDayOfMonth}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
+
+                {frequencyMode === "custom" && (
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type="text" value={cronExpr}
+                      onChange={(e) => { setCronExpr(e.target.value); if (errors.schedule) setErrors(p => ({ ...p, schedule: "" })); }}
+                      placeholder="* * * * *"
+                      style={{ ...inputStyle, fontFamily: "monospace", paddingRight: "5.5rem", borderColor: errors.schedule ? "var(--error)" : "var(--border)" }}
+                    />
+                    <button type="button" onClick={() => setShowPresets(!showPresets)}
+                      style={{
+                        position: "absolute", right: "0.5rem", top: "50%", transform: "translateY(-50%)",
+                        padding: "0.25rem 0.5rem", fontSize: "0.7rem",
+                        backgroundColor: "var(--card)", color: "var(--text-secondary)",
+                        border: "1px solid var(--border)", borderRadius: "0.25rem", cursor: "pointer",
+                        display: "flex", alignItems: "center", gap: "0.25rem",
+                      }}>
+                      Presets <ChevronDown className={`w-3 h-3 transition-transform ${showPresets ? "rotate-180" : ""}`} />
+                    </button>
+                    {showPresets && (
+                      <div style={{
+                        position: "absolute", top: "100%", left: 0, right: 0, marginTop: "0.25rem",
+                        backgroundColor: "var(--card)", border: "1px solid var(--border)",
+                        borderRadius: "0.5rem", boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+                        zIndex: 20, maxHeight: "14rem", overflowY: "auto",
+                      }}>
+                        {CRON_PRESETS.map((preset) => (
+                          <button key={preset.value} type="button"
+                            onClick={() => { setCronExpr(preset.value); setShowPresets(false); }}
+                            style={{
+                              width: "100%", padding: "0.5rem 0.75rem",
+                              display: "flex", alignItems: "center", justifyContent: "space-between",
+                              background: "none", border: "none", cursor: "pointer", textAlign: "left",
+                              borderBottom: "1px solid var(--border)", fontSize: "0.8rem",
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--card-elevated)"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                          >
+                            <span style={{ color: "var(--text-primary)" }}>{preset.label}</span>
+                            <code style={{ color: "var(--text-muted)", fontSize: "0.7rem" }}>{preset.value}</code>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Cron display */}
+                <div style={{
+                  padding: "0.5rem 0.75rem",
+                  backgroundColor: "var(--card)",
+                  borderRadius: "0.375rem",
+                  display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap",
+                }}>
+                  <code style={{ fontFamily: "monospace", fontSize: "0.9rem", color: "var(--accent)", fontWeight: 700 }}>
+                    {cronExpr}
+                  </code>
+                  {isValidCron(cronExpr) && (
+                    <span style={{ color: "var(--text-secondary)", fontSize: "0.8rem" }}>→ {cronToHuman(cronExpr)}</span>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* Custom cron input */}
-            {frequencyMode === "custom" && (
-              <div style={{ position: "relative" }}>
+            {/* Every (interval) */}
+            {scheduleKind === "every" && (
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <label style={{ ...labelStyle, marginBottom: 0 }}>Every</label>
                 <input
-                  type="text"
-                  value={schedule}
-                  onChange={(e) => { setSchedule(e.target.value); if (errors.schedule) setErrors((p) => ({ ...p, schedule: "" })); }}
-                  placeholder="* * * * *"
-                  style={{
-                    width: "100%", padding: "0.75rem 1rem",
-                    paddingRight: "6rem",
-                    backgroundColor: "var(--card-elevated)",
-                    border: `1px solid ${errors.schedule ? "var(--error)" : "var(--border)"}`,
-                    borderRadius: "0.5rem", color: "var(--text-primary)", outline: "none",
-                    fontFamily: "monospace", fontSize: "0.9rem",
-                  }}
+                  type="number" min={1} max={1440} value={everyValue}
+                  onChange={(e) => setEveryValue(Number(e.target.value))}
+                  style={{ ...inputStyle, width: "5rem", textAlign: "center" }}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPresets(!showPresets)}
-                  style={{
-                    position: "absolute", right: "0.5rem", top: "50%", transform: "translateY(-50%)",
-                    padding: "0.375rem 0.625rem", fontSize: "0.75rem",
-                    backgroundColor: "var(--card)", color: "var(--text-secondary)",
-                    border: "1px solid var(--border)", borderRadius: "0.375rem", cursor: "pointer",
-                    display: "flex", alignItems: "center", gap: "0.25rem",
-                  }}
-                >
-                  Presets <ChevronDown className={`w-3 h-3 transition-transform ${showPresets ? "rotate-180" : ""}`} />
-                </button>
-
-                {showPresets && (
-                  <div style={{
-                    position: "absolute", top: "100%", left: 0, right: 0, marginTop: "0.5rem",
-                    backgroundColor: "var(--card)", border: "1px solid var(--border)",
-                    borderRadius: "0.75rem", boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-                    zIndex: 20, maxHeight: "16rem", overflowY: "auto",
-                  }}>
-                    {CRON_PRESETS.map((preset) => (
-                      <button
-                        key={preset.value}
-                        type="button"
-                        onClick={() => { setSchedule(preset.value); setShowPresets(false); }}
-                        style={{
-                          width: "100%", padding: "0.625rem 1rem",
-                          display: "flex", alignItems: "center", justifyContent: "space-between",
-                          background: "none", border: "none", cursor: "pointer", textAlign: "left",
-                          borderBottom: "1px solid var(--border)",
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--card-elevated)"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
-                      >
-                        <span style={{ color: "var(--text-primary)", fontSize: "0.875rem" }}>{preset.label}</span>
-                        <code style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>{preset.value}</code>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <select value={everyUnit} onChange={(e) => setEveryUnit(e.target.value)}
+                  style={{ ...selectStyle, width: "auto" }}>
+                  <option value="m">minutes</option>
+                  <option value="h">hours</option>
+                </select>
               </div>
             )}
 
-            {errors.schedule && <p className="mt-1 text-sm" style={{ color: "var(--error)" }}>{errors.schedule}</p>}
+            {/* One-shot (at) */}
+            {scheduleKind === "at" && (
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: "140px" }}>
+                  <label style={labelStyle}>Date</label>
+                  <input type="date" value={atDate} onChange={(e) => setAtDate(e.target.value)}
+                    style={{ ...inputStyle, borderColor: errors.schedule ? "var(--error)" : "var(--border)" }}
+                  />
+                </div>
+                <div style={{ flex: 1, minWidth: "100px" }}>
+                  <label style={labelStyle}>Time</label>
+                  <input type="time" value={atTime} onChange={(e) => setAtTime(e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+            )}
 
-            {/* Generated cron expression display */}
-            <div style={{ marginTop: "0.75rem", padding: "0.75rem", backgroundColor: "var(--card-elevated)", borderRadius: "0.5rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <code style={{ fontFamily: "monospace", fontSize: "1rem", color: "var(--accent)", fontWeight: 700 }}>
-                {schedule}
-              </code>
-              {isValidCron(schedule) && (
-                <span style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-                  → {cronToHuman(schedule)}
-                </span>
-              )}
+            {errors.schedule && <p style={{ color: "var(--error)", fontSize: "0.75rem", marginTop: "0.25rem" }}>{errors.schedule}</p>}
+
+            {/* Timezone */}
+            <div style={{ marginTop: "0.75rem" }}>
+              <label style={labelStyle}>Timezone</label>
+              <select value={timezone} onChange={(e) => setTimezone(e.target.value)} style={selectStyle}>
+                {TIMEZONES.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
+              </select>
             </div>
           </div>
 
-          {/* Templates */}
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowTemplates(!showTemplates)}
+          {/* ===== Section 3: Execution ===== */}
+          <div style={sectionStyle}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
+              <span style={{
+                width: "8px", height: "8px", borderRadius: "50%",
+                backgroundColor: sectionStatus.execution ? "#22c55e" : "#ef4444",
+                transition: "background-color 0.3s",
+                flexShrink: 0,
+              }} />
+              <span style={{ fontSize: "0.9rem" }}>⚡</span>
+              <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text-primary)" }}>Execution</span>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              {/* Agent */}
+              <div>
+                <label style={labelStyle}>Agent</label>
+                <select value={agentId} onChange={(e) => setAgentId(e.target.value)} style={selectStyle}>
+                  {AGENTS.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.emoji} {a.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Session target */}
+              <div>
+                <label style={labelStyle}>Session Target</label>
+                <div style={{ display: "flex", gap: "0.375rem" }}>
+                  {(["main", "isolated", "custom"] as const).map((st) => (
+                    <button key={st} type="button" onClick={() => setSessionTarget(st)}
+                      style={{
+                        flex: st === "custom" ? 1.5 : 1,
+                        padding: "0.4rem",
+                        borderRadius: "0.375rem",
+                        fontSize: "0.8rem",
+                        fontWeight: 500,
+                        border: "1px solid",
+                        cursor: "pointer",
+                        backgroundColor: sessionTarget === st ? "rgba(255,59,48,0.12)" : "var(--card)",
+                        color: sessionTarget === st ? "var(--accent)" : "var(--text-secondary)",
+                        borderColor: sessionTarget === st ? "rgba(255,59,48,0.3)" : "var(--border)",
+                      }}>
+                      {st === "main" ? "🏠 Main" : st === "isolated" ? "🔒 Isolated" : "🔑 Custom"}
+                    </button>
+                  ))}
+                </div>
+                {sessionTarget === "custom" && (
+                  <input type="text" value={customSession}
+                    onChange={(e) => { setCustomSession(e.target.value); if (errors.session) setErrors(p => ({ ...p, session: "" })); }}
+                    placeholder="session key (e.g., my-pipeline)"
+                    style={{ ...inputStyle, marginTop: "0.375rem", borderColor: errors.session ? "var(--error)" : "var(--border)" }}
+                  />
+                )}
+                {errors.session && <p style={{ color: "var(--error)", fontSize: "0.75rem", marginTop: "0.25rem" }}>{errors.session}</p>}
+              </div>
+
+              {/* Payload type */}
+              <div>
+                <label style={labelStyle}>Payload Type</label>
+                <div style={{ display: "flex", gap: "0.375rem" }}>
+                  {(["agentTurn", "systemEvent"] as const).map((pk) => {
+                    const isForced = (sessionTarget === "main" && pk === "agentTurn") ||
+                                     (sessionTarget === "isolated" && pk === "systemEvent");
+                    return (
+                      <button key={pk} type="button"
+                        onClick={() => !isForced && setPayloadKind(pk)}
+                        disabled={isForced}
+                        style={{
+                          flex: 1, padding: "0.4rem", borderRadius: "0.375rem", fontSize: "0.8rem", fontWeight: 500,
+                          border: "1px solid",
+                          cursor: isForced ? "not-allowed" : "pointer",
+                          opacity: isForced ? 0.4 : 1,
+                          backgroundColor: payloadKind === pk ? "rgba(255,59,48,0.12)" : "var(--card)",
+                          color: payloadKind === pk ? "var(--accent)" : "var(--text-secondary)",
+                          borderColor: payloadKind === pk ? "rgba(255,59,48,0.3)" : "var(--border)",
+                        }}>
+                        {pk === "agentTurn" ? "💬 Agent Turn" : "⚙️ System Event"}
+                      </button>
+                    );
+                  })}
+                </div>
+                {sessionTarget === "main" && payloadKind !== "systemEvent" && (
+                  <div style={{
+                    marginTop: "0.375rem",
+                    padding: "0.5rem 0.75rem",
+                    backgroundColor: "rgba(239, 68, 68, 0.1)",
+                    border: "1px solid rgba(239, 68, 68, 0.3)",
+                    borderRadius: "0.375rem",
+                    color: "#ef4444",
+                    fontSize: "0.8rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                  }}>
+                    ⚠️ Las sesiones "Main" requieren un evento de sistema (System Event), no un mensaje de agente.
+                  </div>
+                )}
+                {sessionTarget === "isolated" && payloadKind !== "agentTurn" && (
+                  <div style={{
+                    marginTop: "0.375rem",
+                    padding: "0.5rem 0.75rem",
+                    backgroundColor: "rgba(239, 68, 68, 0.1)",
+                    border: "1px solid rgba(239, 68, 68, 0.3)",
+                    borderRadius: "0.375rem",
+                    color: "#ef4444",
+                    fontSize: "0.8rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                  }}>
+                    ⚠️ Las sesiones aisladas requieren un mensaje de agente (Agent Turn), no un evento de sistema.
+                  </div>
+                )}
+                {errors.payload && <p style={{ color: "var(--error)", fontSize: "0.75rem", marginTop: "0.25rem" }}>{errors.payload}</p>}
+              </div>
+
+              {/* Message */}
+              <div>
+                <label style={labelStyle}>
+                  {payloadKind === "agentTurn" ? "Message / Prompt *" : "System Event Text *"}
+                </label>
+                <textarea value={message}
+                  onChange={(e) => { setMessage(e.target.value); if (errors.message) setErrors(p => ({ ...p, message: "" })); }}
+                  placeholder={payloadKind === "agentTurn" ? "What should the agent do?" : "System event text..."}
+                  rows={3}
+                  style={{
+                    ...inputStyle,
+                    resize: "vertical",
+                    fontFamily: "monospace",
+                    fontSize: "0.8rem",
+                    borderColor: errors.message ? "var(--error)" : "var(--border)",
+                  }}
+                />
+                {errors.message && <p style={{ color: "var(--error)", fontSize: "0.75rem", marginTop: "0.25rem" }}>{errors.message}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* ===== Section 4: Advanced ===== */}
+          <div style={{ ...sectionStyle, padding: showAdvanced ? "1rem" : "0.625rem 1rem" }}>
+            <button type="button" onClick={() => setShowAdvanced(!showAdvanced)}
               style={{
-                display: "flex", alignItems: "center", gap: "0.5rem",
-                color: "var(--text-secondary)", background: "none", border: "none", cursor: "pointer",
-                fontSize: "0.875rem", fontWeight: 500,
-              }}
-            >
-              <Zap className="w-4 h-4" />
-              Templates
-              <ChevronDown className={`w-4 h-4 transition-transform ${showTemplates ? "rotate-180" : ""}`} />
+                display: "flex", alignItems: "center", gap: "0.5rem", width: "100%",
+                background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)",
+                fontSize: "0.85rem", fontWeight: 700,
+              }}>
+              <Settings2 className="w-4 h-4" />
+              Advanced Options
+              {showAdvanced ? <ChevronUp className="w-4 h-4 ml-auto" /> : <ChevronDown className="w-4 h-4 ml-auto" />}
             </button>
 
-            {showTemplates && (
-              <div style={{ marginTop: "0.75rem", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                {TEMPLATES.map((t) => (
-                  <button
-                    key={t.cron}
-                    type="button"
-                    onClick={() => { setSchedule(t.cron); setFrequencyMode("custom"); setShowTemplates(false); }}
-                    style={{
-                      padding: "0.375rem 0.875rem",
-                      borderRadius: "9999px",
-                      fontSize: "0.8rem",
-                      backgroundColor: "var(--card-elevated)",
-                      color: "var(--text-secondary)",
-                      border: "1px solid var(--border)",
-                      cursor: "pointer",
-                      transition: "all 0.15s",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
-                  >
-                    {t.label}
-                  </button>
-                ))}
+            {showAdvanced && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "0.75rem" }}>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  {/* Model */}
+                  <div style={{ flex: 1, minWidth: "140px" }}>
+                    <label style={labelStyle}>Model Override</label>
+                    <select value={model} onChange={(e) => setModel(e.target.value)} style={selectStyle}>
+                      {MODELS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                    </select>
+                  </div>
+                  {/* Thinking */}
+                  <div style={{ flex: 1, minWidth: "140px" }}>
+                    <label style={labelStyle}>Thinking Level</label>
+                    <select value={thinking} onChange={(e) => setThinking(e.target.value)} style={selectStyle}>
+                      {THINKING_LEVELS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  {/* Timeout */}
+                  <div style={{ flex: 1, minWidth: "100px" }}>
+                    <label style={labelStyle}>Timeout (seconds)</label>
+                    <input type="number" min={5} max={3600} value={timeoutSeconds}
+                      onChange={(e) => setTimeoutSeconds(Number(e.target.value))}
+                      style={{ ...inputStyle, textAlign: "center" }}
+                    />
+                  </div>
+                  {/* Tools */}
+                  <div style={{ flex: 2, minWidth: "160px" }}>
+                    <label style={labelStyle}>Tools Allowlist</label>
+                    <input type="text" value={tools} onChange={(e) => setTools(e.target.value)}
+                      placeholder="exec,read,write"
+                      style={{ ...inputStyle, fontFamily: "monospace", fontSize: "0.8rem" }}
+                    />
+                  </div>
+                </div>
+
+                {/* Toggles */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                    <input type="checkbox" checked={lightContext} onChange={(e) => setLightContext(e.target.checked)}
+                      style={{ accentColor: "var(--accent)" }} />
+                    Light Context
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                    <input type="checkbox" checked={exact} onChange={(e) => setExact(e.target.checked)}
+                      style={{ accentColor: "var(--accent)" }} />
+                    Exact Timing
+                  </label>
+                  {scheduleKind === "at" && (
+                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                      <input type="checkbox" checked={deleteAfterRun} onChange={(e) => setDeleteAfterRun(e.target.checked)}
+                        style={{ accentColor: "var(--accent)" }} />
+                      Delete After Run
+                    </label>
+                  )}
+                </div>
+
+                {/* Delivery */}
+                <div style={{ borderTop: "1px solid var(--border)", paddingTop: "0.75rem" }}>
+                  <label style={labelStyle}>Delivery</label>
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: "0.375rem", cursor: "pointer", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                      <input type="radio" name="announce" checked={announce === true} onChange={() => setAnnounce(true)}
+                        style={{ accentColor: "var(--accent)" }} />
+                      📢 Announce
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: "0.375rem", cursor: "pointer", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                      <input type="radio" name="announce" checked={announce === false} onChange={() => { setAnnounce(false); setDeliveryChannel(""); setDeliveryTo(""); }}
+                        style={{ accentColor: "var(--accent)" }} />
+                      🔇 No Deliver
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: "0.375rem", cursor: "pointer", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                      <input type="radio" name="announce" checked={announce === null} onChange={() => setAnnounce(null)}
+                        style={{ accentColor: "var(--accent)" }} />
+                      ⚙️ Default
+                    </label>
+                  </div>
+                  {announce === true && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                        <div style={{ flex: 1, minWidth: "120px" }}>
+                          <label style={{ ...labelStyle, fontSize: "0.7rem" }}>Canal</label>
+                          <select value={deliveryChannel} onChange={(e) => setDeliveryChannel(e.target.value)} style={selectStyle}>
+                            <option value="">Canal...</option>
+                            {DELIVERY_CHANNELS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                          </select>
+                        </div>
+                        <div style={{ flex: 1, minWidth: "140px" }}>
+                          <label style={{ ...labelStyle, fontSize: "0.7rem" }}>Entregar en chat de</label>
+                          <select value={deliveryTo} onChange={(e) => setDeliveryTo(e.target.value)} style={selectStyle}>
+                            <option value="">Seleccionar destino...</option>
+                            <option value="257725883">👤 Rubén (DM principal)</option>
+                            {AGENTS.filter(a => a.id).map((a) => (
+                              <option key={a.id} value="257725883">
+                                {a.emoji} {a.label} (vía bot {a.id})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      {deliveryChannel && deliveryTo && (
+                        <div style={{
+                          padding: "0.375rem 0.625rem",
+                          backgroundColor: "rgba(34, 197, 94, 0.1)",
+                          border: "1px solid rgba(34, 197, 94, 0.3)",
+                          borderRadius: "0.375rem",
+                          color: "#22c55e",
+                          fontSize: "0.75rem",
+                        }}>
+                          ✅ Delivery: {deliveryChannel} → {deliveryTo} {agentId ? `(vía bot ${agentId})` : ""}
+                        </div>
+                      )}
+                      {announce === true && !deliveryTo && (
+                        <div style={{
+                          padding: "0.375rem 0.625rem",
+                          backgroundColor: "rgba(239, 68, 68, 0.1)",
+                          border: "1px solid rgba(239, 68, 68, 0.3)",
+                          borderRadius: "0.375rem",
+                          color: "#ef4444",
+                          fontSize: "0.75rem",
+                        }}>
+                          ⚠️ Announce activado pero sin destino. Selecciona un chat de destino para evitar errores.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
 
-          {/* Timezone */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>Timezone</label>
-            <select
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              style={{
-                width: "100%", padding: "0.75rem 1rem",
-                backgroundColor: "var(--card-elevated)",
-                border: "1px solid var(--border)",
-                borderRadius: "0.5rem", color: "var(--text-primary)", outline: "none", cursor: "pointer",
-              }}
-            >
-              {TIMEZONES.map((tz) => (
-                <option key={tz} value={tz}>{tz}</option>
-              ))}
-            </select>
+          {/* ===== Section 5: Preview ===== */}
+          <div style={sectionStyle}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
+              <span style={{ fontSize: "0.9rem" }}>👁️</span>
+              <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text-primary)" }}>Preview</span>
+            </div>
+
+            {/* Schedule description */}
+            <div style={{
+              padding: "0.5rem 0.75rem", borderRadius: "0.375rem",
+              backgroundColor: "var(--card)", marginBottom: "0.75rem",
+              display: "flex", alignItems: "center", gap: "0.5rem",
+            }}>
+              <Calendar className="w-4 h-4" style={{ color: "var(--accent)", flexShrink: 0 }} />
+              <span style={{ color: "var(--text-primary)", fontSize: "0.85rem", fontWeight: 600 }}>{scheduleHuman}</span>
+            </div>
+
+            {/* Next executions */}
+            {nextRuns.length > 0 && (
+              <div style={{ marginBottom: "0.75rem" }}>
+                <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", marginBottom: "0.375rem" }}>
+                  Next {nextRuns.length} execution{nextRuns.length > 1 ? "s" : ""}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                  {nextRuns.map((run, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem" }}>
+                      <span style={{
+                        width: "1.25rem", height: "1.25rem", borderRadius: "9999px",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        backgroundColor: "rgba(192,132,252,0.15)", color: "#C084FC",
+                        fontSize: "0.65rem", fontWeight: 700, flexShrink: 0,
+                      }}>{i + 1}</span>
+                      <span style={{ color: "var(--text-secondary)" }}>
+                        {run.toLocaleString("es-ES", {
+                          weekday: "short", month: "short", day: "numeric",
+                          hour: "numeric", minute: "2-digit", hour12: false,
+                        })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* CLI command */}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", marginBottom: "0.375rem" }}>
+                <Terminal className="w-3.5 h-3.5" /> CLI equivalent
+              </div>
+              <pre style={{
+                padding: "0.5rem 0.75rem",
+                backgroundColor: "var(--card)",
+                borderRadius: "0.375rem",
+                fontSize: "0.7rem",
+                color: "var(--text-muted)",
+                fontFamily: "monospace",
+                overflowX: "auto",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-all",
+                margin: 0,
+              }}>
+                {cliPreview}
+              </pre>
+            </div>
           </div>
 
-          {/* Preview Next Runs */}
-          {nextRuns.length > 0 && (
-            <div style={{ padding: "1rem", backgroundColor: "var(--card-elevated)", borderRadius: "0.75rem", border: "1px solid var(--border)" }}>
-              <div className="flex items-center gap-2 mb-3">
-                <Calendar className="w-4 h-4" style={{ color: "#C084FC" }} />
-                <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                  Preview: Next 5 executions
-                </span>
-              </div>
-              <div className="space-y-2">
-                {nextRuns.map((run, i) => (
-                  <div key={i} className="flex items-center gap-3 text-sm" style={{ color: "var(--text-secondary)" }}>
-                    <span style={{
-                      width: "1.5rem", height: "1.5rem", borderRadius: "9999px",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      backgroundColor: "rgba(192,132,252,0.15)", color: "#C084FC",
-                      fontSize: "0.75rem", fontWeight: 700, flexShrink: 0,
-                    }}>
-                      {i + 1}
-                    </span>
-                    {run.toLocaleString("es-ES", {
-                      weekday: "short", year: "numeric", month: "short", day: "numeric",
-                      hour: "numeric", minute: "2-digit", hour12: false,
-                    })}
-                  </div>
-                ))}
-              </div>
+          {/* Submit error */}
+          {errors.submit && (
+            <div style={{
+              padding: "0.75rem",
+              backgroundColor: "color-mix(in srgb, var(--error) 10%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--error) 30%, transparent)",
+              borderRadius: "0.5rem",
+              color: "var(--error)", fontSize: "0.85rem",
+            }}>
+              {errors.submit}
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4" style={{ borderTop: "1px solid var(--border)" }}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{ padding: "0.5rem 1.25rem", borderRadius: "0.5rem", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}
-            >
+          {/* ===== Actions ===== */}
+          <div className="flex items-center justify-end gap-3 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
+            <button type="button" onClick={onClose}
+              style={{ padding: "0.5rem 1.25rem", borderRadius: "0.5rem", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}>
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={isSaving}
+            <button type="submit" disabled={isSaving || !sectionStatus.canSubmit}
               style={{
-                padding: "0.625rem 1.5rem",
-                backgroundColor: "var(--accent)", color: "#000",
-                borderRadius: "0.5rem", border: "none", cursor: isSaving ? "not-allowed" : "pointer",
-                fontWeight: 700, fontSize: "0.9rem", opacity: isSaving ? 0.7 : 1,
+                padding: "0.5rem 1.5rem",
+                backgroundColor: sectionStatus.canSubmit ? "#22c55e" : "#ef4444",
+                color: sectionStatus.canSubmit ? "#000" : "rgba(255,255,255,0.6)",
+                borderRadius: "0.5rem", border: "none",
+                cursor: (isSaving || !sectionStatus.canSubmit) ? "not-allowed" : "pointer",
+                fontWeight: 700, fontSize: "0.85rem",
+                opacity: (isSaving || !sectionStatus.canSubmit) ? 0.7 : 1,
                 display: "flex", alignItems: "center", gap: "0.5rem",
-              }}
-            >
+                transition: "all 0.3s",
+              }}>
               {isSaving ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                  Saving...
-                </>
+                <><div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> Saving...</>
               ) : (
                 <>{editingJob ? "Update Job" : "Create Job"}</>
               )}

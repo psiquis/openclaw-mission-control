@@ -1,91 +1,167 @@
-# TenacitOS — Mission Control
+<div align="center">
 
-A real-time dashboard and control center for [OpenClaw](https://openclaw.ai) AI agent instances. Built with Next.js, React 19, and Tailwind CSS v4.
+# Mission Control
 
-> **TenacitOS** lives inside your OpenClaw workspace and reads its configuration, agents, sessions, memory, and logs directly from the host. No extra database or backend required — OpenClaw is the backend.
+### The definitive open-source dashboard for managing OpenClaw AI agent fleets
+
+[![Next.js](https://img.shields.io/badge/Next.js-15-000?logo=next.js)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)](https://www.typescriptlang.org)
+[![SQLite](https://img.shields.io/badge/SQLite-WAL-003B57?logo=sqlite)](https://sqlite.org)
+[![License](https://img.shields.io/badge/License-MIT-6366F1)](LICENSE)
+[![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.4+-000?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiLz48L3N2Zz4=)](https://github.com/openclaw/openclaw)
+
+**Monitor agents · Manage skills · Schedule automation · Track everything**
+
+</div>
 
 ---
 
-## Features
+## Overview
 
-- **📊 System Monitor** — Real-time VPS metrics (CPU, RAM, Disk, Network) + PM2/Docker status
-- **🤖 Agent Dashboard** — All agents, their sessions, token usage, model, and activity status
-- **💰 Cost Tracking** — Real cost analytics from OpenClaw sessions (SQLite)
-- **⏰ Cron Manager** — Visual cron manager with weekly timeline, run history, and manual triggers
-- **📋 Activity Feed** — Real-time log of agent actions with heatmap and charts
-- **🧠 Memory Browser** — Explore, search, and edit agent memory files
-- **📁 File Browser** — Navigate workspace files with preview and in-browser editing
-- **🔎 Global Search** — Full-text search across memory and workspace files
-- **🔔 Notifications** — Real-time notification center with unread badge
-- **🏢 Office 3D** — Interactive 3D office with one desk per agent (React Three Fiber)
-- **📺 Terminal** — Read-only terminal for safe status commands
-- **🔐 Auth** — Password-protected with rate limiting and secure cookie
+Mission Control is a self-hosted Next.js dashboard designed to manage [OpenClaw](https://github.com/openclaw/openclaw) AI agent deployments. It provides real-time visibility into your agent fleet, skill management, cron scheduling, session history, system monitoring, and more — all from a single, clean interface.
+
+Built for teams and solo operators running multi-agent OpenClaw setups on Linux servers, Raspberry Pis, or VPS instances.
 
 ---
 
 ## Screenshots
 
-**Dashboard** — activity overview, agent status, and weather widget
+<table>
+<tr>
+<td width="50%">
 
-![Dashboard](./docs/screenshots/dashboard.jpg)
+**Dashboard**
+![Dashboard](docs/screenshots/dashboard.png)
 
-**Session History** — all OpenClaw sessions with token usage and context tracking
+</td>
+<td width="50%">
 
-![Sessions](./docs/screenshots/sessions.jpg)
+**Agents**
+![Agents](docs/screenshots/agents.png)
 
-**Costs & Analytics** — daily cost trends and breakdown per agent
+</td>
+</tr>
+<tr>
+<td>
 
-![Costs](./docs/screenshots/costs.jpg)
+**Skills Management**
+![Skills](docs/screenshots/skills.png)
 
-**System Monitor** — real-time CPU, RAM, Disk, and Network metrics
+</td>
+<td>
 
-![System Monitor](./docs/screenshots/system.jpg)
+**Skill Templates**
+![Skill Templates](docs/screenshots/skill-templates.png)
 
-**Office 3D** — interactive 3D office with one voxel avatar per agent (React Three Fiber)
+</td>
+</tr>
+<tr>
+<td>
 
-![Office 3D](./docs/screenshots/office3d.jpg)
+**Cron Jobs**
+![Cron](docs/screenshots/cron.png)
+
+</td>
+<td>
+
+**Cron Templates**
+![Cron Templates](docs/screenshots/cron-templates.png)
+
+</td>
+</tr>
+<tr>
+<td>
+
+**System Monitor**
+![System](docs/screenshots/system.png)
+
+</td>
+<td>
+
+**Sessions**
+![Sessions](docs/screenshots/sessions.png)
+
+</td>
+</tr>
+<tr>
+<td>
+
+**File Browser**
+![Files](docs/screenshots/files.png)
+
+</td>
+<td>
+
+**Memory Search**
+![Memory](docs/screenshots/memory.png)
+
+</td>
+</tr>
+</table>
 
 ---
 
-## Requirements
+## Features
 
-- **Node.js** 18+ (tested with v22)
-- **[OpenClaw](https://openclaw.ai)** installed and running on the same host
-- **PM2** or **systemd** (recommended for production)
-- **Caddy** or another reverse proxy (for HTTPS in production)
+### Agent Fleet Management
+- Multi-agent overview with status, models, and configuration
+- Per-agent workspace browsing and memory search
+- Agent organigram visualization
+
+### Skill Operating System
+- **Skill Registry** — SQLite-backed inventory with automatic risk assessment, category detection, and file scanning
+- **Skill Detail View** — SKILL.md preview, file tree, agent assignment, invocation history, and configuration
+- **Skill Templates** — 7 built-in templates (basic, exec, stateful, automation, API, workflow, monitoring) with guided wizard for creating standardized skills
+- **Risk Assessment** — Automatic detection of `sudo`, `rm -rf`, elevated commands, and secrets references
+
+### Cron Scheduling
+- Full CRUD for OpenClaw cron jobs via the gateway CLI
+- Weekly timeline visualization
+- **Cron Templates** — 8 pre-configured job templates (backups, health checks, cleanups, reporting) ready to deploy with one click
+- Create, edit, and delete custom cron templates
+- Human-readable schedule descriptions
+
+### System Monitoring
+- Real-time CPU, RAM, and disk usage
+- Service status (systemd, Ollama, proxies)
+- Hardware and software inventory
+
+### Session History
+- Browse all agent sessions (main, cron, sub-agents, chats)
+- Token usage tracking per session
+- Filter by agent, type, and date
+
+### Additional Features
+- **File Browser** — Navigate and edit workspace files with Monaco editor
+- **Memory Search** — Semantic search across agent memory databases
+- **Activity Feed** — Real-time activity stream with type filtering
+- **Git Integration** — Repository status and recent commits
+- **Analytics** — Usage patterns and activity heatmaps
+- **Live Logs** — Real-time log streaming
+- **Terminal** — Web-based terminal access
+- **Search** — Global search across files, memory, and sessions
+- **Quick Actions** — One-click system operations
+- **PWA Support** — Installable as a Progressive Web App
 
 ---
 
-## How it works
+## Quick Start
 
-TenacitOS reads directly from your OpenClaw installation:
+### Prerequisites
 
-```
-/root/.openclaw/              ← OPENCLAW_DIR (configurable)
-├── openclaw.json             ← agents list, channels, models config
-├── workspace/                ← main agent workspace (MEMORY.md, SOUL.md, etc.)
-├── workspace-studio/         ← sub-agent workspaces
-├── workspace-infra/
-├── ...
-└── workspace/mission-control/ ← TenacitOS lives here
-```
+- [Node.js](https://nodejs.org) 22+
+- [OpenClaw](https://github.com/openclaw/openclaw) installed and running
+- Linux/macOS (tested on Ubuntu 24.04)
 
-The app uses `OPENCLAW_DIR` to locate `openclaw.json` and all workspaces. **No manual agent configuration needed** — agents are auto-discovered from `openclaw.json`.
-
----
-
-## Installation
-
-### 1. Clone into your OpenClaw workspace
+### Install
 
 ```bash
-cd /root/.openclaw/workspace   # or your OPENCLAW_DIR/workspace
-git clone https://github.com/carlosazaustre/tenacitOS.git mission-control
-cd mission-control
+git clone https://github.com/psiquis/openclaw-mission-control.git
+cd openclaw-mission-control
 npm install
 ```
 
-### 2. Configure environment
+### Configure
 
 ```bash
 cp .env.example .env.local
@@ -94,315 +170,165 @@ cp .env.example .env.local
 Edit `.env.local`:
 
 ```env
-# --- Auth (required) ---
-# Strong password to log in to the dashboard
-ADMIN_PASSWORD=your-secure-password-here
+# Required
+ADMIN_PASSWORD=your-secure-password
+AUTH_SECRET=$(openssl rand -base64 32)
+OPENCLAW_DIR=/home/your-user/.openclaw
 
-# Random secret used to sign the auth cookie
-# Generate with: openssl rand -base64 32
-AUTH_SECRET=your-random-32-char-secret-here
-
-# --- OpenClaw paths (optional — defaults work for standard installs) ---
-# OPENCLAW_DIR=/root/.openclaw
-
-# --- Branding (customize for your instance) ---
+# Optional — Branding
 NEXT_PUBLIC_AGENT_NAME=Mission Control
-NEXT_PUBLIC_AGENT_EMOJI=🤖
-NEXT_PUBLIC_AGENT_DESCRIPTION=Your AI co-pilot, powered by OpenClaw
-NEXT_PUBLIC_AGENT_LOCATION=             # e.g. "Madrid, Spain"
-NEXT_PUBLIC_BIRTH_DATE=                 # ISO date, e.g. "2026-01-01"
-NEXT_PUBLIC_AGENT_AVATAR=               # path to image in /public, e.g. "/avatar.jpg"
-
-NEXT_PUBLIC_OWNER_USERNAME=your-username
-NEXT_PUBLIC_OWNER_EMAIL=your-email@example.com
-NEXT_PUBLIC_TWITTER_HANDLE=@username
-NEXT_PUBLIC_COMPANY_NAME=MISSION CONTROL, INC.
+NEXT_PUBLIC_COMPANY_NAME=Your Company
 NEXT_PUBLIC_APP_TITLE=Mission Control
 ```
 
-> **Tip:** `OPENCLAW_DIR` defaults to `/root/.openclaw`. If your OpenClaw is installed elsewhere, set this variable.
-
-### 3. Initialize data files
-
-```bash
-cp data/cron-jobs.example.json data/cron-jobs.json
-cp data/activities.example.json data/activities.json
-cp data/notifications.example.json data/notifications.json
-cp data/configured-skills.example.json data/configured-skills.json
-cp data/tasks.example.json data/tasks.json
-```
-
-### 4. Generate secrets
-
-```bash
-# Auth secret
-openssl rand -base64 32
-
-# Password (or use a password manager)
-openssl rand -base64 18
-```
-
-### 5. Run
+### Run
 
 ```bash
 # Development
 npm run dev
-# → http://localhost:3000
 
-# Production build
+# Production
 npm run build
-npm start
+npm run start
 ```
 
-Login at `http://localhost:3000` with the `ADMIN_PASSWORD` you set.
+Open `http://localhost:3000` and log in with your `ADMIN_PASSWORD`.
+
+### Docker
+
+```bash
+docker build -t mission-control .
+docker run -d \
+  -p 3000:3000 \
+  -v /home/your-user/.openclaw:/root/.openclaw:ro \
+  -e ADMIN_PASSWORD=your-password \
+  -e AUTH_SECRET=$(openssl rand -base64 32) \
+  mission-control
+```
 
 ---
 
-## Production Deployment
-
-### PM2 (recommended)
-
-```bash
-npm run build
-
-pm2 start npm --name "mission-control" -- start
-pm2 save
-pm2 startup   # enable auto-restart on reboot
-```
-
-### systemd
-
-Create `/etc/systemd/system/mission-control.service`:
-
-```ini
-[Unit]
-Description=TenacitOS — OpenClaw Mission Control
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/root/.openclaw/workspace/mission-control
-ExecStart=/usr/bin/npm start
-Restart=always
-RestartSec=10
-Environment=NODE_ENV=production
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable mission-control
-sudo systemctl start mission-control
-```
-
-### Reverse proxy — Caddy (HTTPS)
-
-```caddy
-mission-control.yourdomain.com {
-    reverse_proxy localhost:3000
-}
-```
-
-> When behind HTTPS, `secure: true` is set automatically on the auth cookie.
-
----
-
-## Configuration
-
-### Agent branding
-
-All personal data stays in `.env.local` (gitignored). The `src/config/branding.ts` file reads from env vars — **never edit it directly** with your personal data.
-
-### Agent discovery
-
-Agents are auto-discovered from `openclaw.json` at startup. The `/api/agents` endpoint reads:
-
-```json
-{
-  "agents": {
-    "list": [
-      { "id": "main", "name": "...", "workspace": "...", "model": {...} },
-      { "id": "studio", "name": "...", "workspace": "..." }
-    ]
-  }
-}
-```
-
-Each agent can define its own visual appearance in `openclaw.json`:
-
-```json
-{
-  "id": "studio",
-  "name": "My Studio Agent",
-  "ui": {
-    "emoji": "🎬",
-    "color": "#E91E63"
-  }
-}
-```
-
-### Office 3D — agent positions
-
-The 3D office has default positions for up to 6 agents. To customize positions, names, and colors for your own agents, edit `src/components/Office3D/agentsConfig.ts`:
-
-```ts
-export const AGENTS: AgentConfig[] = [
-  {
-    id: "main",       // must match workspace ID
-    name: "...",      // display name (can also come from API)
-    emoji: "🤖",
-    position: [0, 0, 0],
-    color: "#FFCC00",
-    role: "Main Agent",
-  },
-  // add your sub-agents here
-];
-```
-
-### 3D Avatar models
-
-To add custom 3D avatars (Ready Player Me GLB format), place them in `public/models/`:
-
-```
-public/models/
-├── main.glb        ← main agent avatar
-├── studio.glb      ← workspace-studio agent
-└── infra.glb       ← workspace-infra agent
-```
-
-Filename must match the agent `id`. If no file is found, a colored sphere is shown as fallback.  
-See `public/models/README.md` for full instructions.
-
-### Cost tracking
-
-Usage is collected from OpenClaw's SQLite databases via a script:
-
-```bash
-# Collect once
-npx tsx scripts/collect-usage.ts
-
-# Auto-collect every hour (adds a cron job)
-./scripts/setup-cron.sh
-```
-
-See [docs/COST-TRACKING.md](./docs/COST-TRACKING.md) for details.
-
----
-
-## Project Structure
+## Architecture
 
 ```
 mission-control/
 ├── src/
-│   ├── app/
-│   │   ├── (dashboard)/      # Dashboard pages (protected)
-│   │   ├── api/              # API routes
-│   │   ├── login/            # Login page
-│   │   └── office/           # 3D office (unprotected route)
-│   ├── components/
-│   │   ├── TenacitOS/        # OS-style UI shell (topbar, dock, status bar)
-│   │   └── Office3D/         # React Three Fiber 3D office
-│   ├── config/
-│   │   └── branding.ts       # Branding constants (reads from env vars)
-│   └── lib/                  # Utilities (pricing, queries, activity logger...)
-├── data/                     # JSON data files (gitignored — use .example versions)
-├── docs/                     # Extended documentation
-├── public/
-│   └── models/               # GLB avatar models (add your own)
-├── scripts/                  # Setup and data collection scripts
-├── .env.example              # Environment variable template
-└── middleware.ts             # Auth guard for all routes
+│   ├── app/                    # Next.js App Router
+│   │   ├── (dashboard)/        # All dashboard pages
+│   │   │   ├── skills/         # Skill management + templates
+│   │   │   ├── cron/           # Cron jobs + templates
+│   │   │   ├── agents/         # Agent fleet overview
+│   │   │   ├── system/         # System monitoring
+│   │   │   ├── sessions/       # Session history
+│   │   │   ├── files/          # File browser
+│   │   │   ├── memory/         # Memory search
+│   │   │   └── ...             # Other pages
+│   │   ├── api/                # API routes
+│   │   │   ├── skills/         # Skill CRUD + scan + stats
+│   │   │   ├── templates/      # Skill template engine
+│   │   │   ├── cron/           # Cron CRUD + templates
+│   │   │   ├── agents/         # Agent status
+│   │   │   ├── system/         # System metrics
+│   │   │   └── ...             # Other APIs
+│   │   └── login/              # Authentication
+│   ├── components/             # React components
+│   ├── lib/                    # Business logic
+│   │   ├── skills-db.ts        # Skill registry (SQLite)
+│   │   ├── skill-parser.ts     # SKILL.md frontmatter parser
+│   │   ├── template-engine.ts  # Skill generation from templates
+│   │   ├── cron-templates-db.ts # Cron template persistence
+│   │   └── ...
+│   └── config/                 # Branding configuration
+├── data/                       # SQLite databases (auto-created)
+│   ├── skills.db               # Skill registry + invocations
+│   ├── cron-templates.db       # Cron template storage
+│   └── activities.db           # Activity log
+├── public/                     # Static assets
+└── docs/                       # Documentation + screenshots
 ```
 
----
+### Tech Stack
 
-## Security
-
-- All routes (including all `/api/*`) require authentication — handled by `src/middleware.ts`
-- `/api/auth/login` and `/api/health` are the only public endpoints
-- Login is rate-limited: **5 failed attempts → 15-minute lockout** per IP
-- Auth cookie is `httpOnly`, `sameSite: lax`, and `secure` in production
-- Terminal API uses a strict command allowlist — `env`, `curl`, `wget`, `node`, `python` are blocked
-- **Never commit `.env.local`** — it contains your credentials
-
-Generate fresh secrets:
-
-```bash
-openssl rand -base64 32   # AUTH_SECRET
-openssl rand -base64 18   # ADMIN_PASSWORD
-```
-
----
-
-## Troubleshooting
-
-**"Gateway not reachable" / agent data missing**
-
-```bash
-openclaw status
-openclaw gateway start   # if not running
-```
-
-**"Database not found" (cost tracking)**
-
-```bash
-npx tsx scripts/collect-usage.ts
-```
-
-**Build errors after pulling updates**
-
-```bash
-rm -rf .next node_modules
-npm install
-npm run build
-```
-
-**Scripts not executable**
-
-```bash
-chmod +x scripts/*.sh
-```
-
----
-
-## Tech Stack
-
-| Layer | Tech |
-|---|---|
+| Layer | Technology |
+|-------|-----------|
 | Framework | Next.js 15 (App Router) |
-| UI | React 19 + Tailwind CSS v4 |
-| 3D | React Three Fiber + Drei |
-| Charts | Recharts |
+| Language | TypeScript 5 |
+| Styling | Tailwind CSS 4 + CSS Variables |
+| Database | SQLite via better-sqlite3 (WAL mode) |
 | Icons | Lucide React |
-| Database | SQLite (better-sqlite3) |
-| Runtime | Node.js 22 |
+| Charts | Recharts |
+| Editor | Monaco Editor |
+| Fonts | Inter + Sora + JetBrains Mono |
+
+### Data Flow
+
+```
+Browser ←→ Next.js API Routes ←→ OpenClaw CLI / SQLite / Filesystem
+                                       ↓
+                              OpenClaw Gateway (agents, cron, sessions)
+```
+
+Mission Control reads from and writes to:
+- `~/.openclaw/openclaw.json` — Agent and skill configuration
+- `~/.openclaw/cron/jobs.json` — Cron job definitions (via `openclaw cron` CLI)
+- `~/.openclaw/agents/` — Agent session data
+- `~/.openclaw/workspace/` — Agent workspaces
+- `~/.openclaw/skills/` — Custom skills
+- `~/.openclaw/memory/` — Agent memory databases
+- `data/skills.db` — Local skill registry with metadata, risk assessment, invocations
+- `data/cron-templates.db` — Custom cron job templates
+
+---
+
+## Customization
+
+### Branding
+
+All branding is configured via environment variables — no code changes needed:
+
+```env
+NEXT_PUBLIC_AGENT_NAME=My Dashboard
+NEXT_PUBLIC_COMPANY_NAME=My Company
+NEXT_PUBLIC_APP_TITLE=Control Center
+NEXT_PUBLIC_OWNER_USERNAME=admin
+```
+
+### Design System
+
+The design system uses CSS custom properties defined in `src/app/globals.css`. Override any variable to customize:
+
+```css
+:root {
+  --accent: #6366F1;       /* Primary accent (indigo) */
+  --bg: #09090B;           /* Background */
+  --surface: #111113;      /* Card surfaces */
+  --border: #1F1F23;       /* Borders */
+  --text-primary: #FAFAFA; /* Primary text */
+}
+```
 
 ---
 
 ## Contributing
 
-1. Fork the repo
-2. Create a feature branch (`git checkout -b feat/my-feature`)
-3. **Keep personal data out of commits** — use `.env.local` and `data/` (both gitignored)
-4. Write clear commit messages
-5. Open a PR
+Contributions are welcome. Please open an issue first to discuss what you'd like to change.
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for more details.
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feature/my-feature`)
+3. Commit your changes (`git commit -m 'Add my feature'`)
+4. Push to the branch (`git push origin feature/my-feature`)
+5. Open a Pull Request
 
 ---
 
 ## License
 
-MIT — see [LICENSE](./LICENSE)
+MIT — see [LICENSE](LICENSE) for details.
 
 ---
 
-## Links
+<div align="center">
 
-- [OpenClaw](https://openclaw.ai) — the AI agent runtime this dashboard is built for
-- [OpenClaw Docs](https://docs.openclaw.ai)
-- [Discord Community](https://discord.com/invite/clawd)
-- [GitHub Issues](../../issues) — bug reports and feature requests
+Built for [OpenClaw](https://github.com/openclaw/openclaw) · Made by [OpenCloud](https://github.com/psiquis)
+
+</div>

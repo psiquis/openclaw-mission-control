@@ -70,24 +70,14 @@ export async function GET() {
   checks.push(...pm2Checks);
 
   // External URLs
-  const urlChecks = await Promise.all([
-    checkUrl('https://tenacitas.cazaustre.dev'),
-    checkUrl('https://api.anthropic.com', 3000),
-  ]);
-
-  checks.push({
-    name: 'tenacitas.cazaustre.dev',
-    status: urlChecks[0].status,
-    latency: urlChecks[0].latency,
-    url: 'https://tenacitas.cazaustre.dev',
-  });
+  const anthropicCheck = await checkUrl('https://api.anthropic.com', 3000);
 
   checks.push({
     name: 'Anthropic API',
-    status: urlChecks[1].status === 'up' || (urlChecks[1] as { httpCode?: number }).httpCode === 401 ? 'up' : urlChecks[1].status,
-    latency: urlChecks[1].latency,
+    status: anthropicCheck.status === 'up' || (anthropicCheck as { httpCode?: number }).httpCode === 401 ? 'up' : anthropicCheck.status,
+    latency: anthropicCheck.latency,
     url: 'https://api.anthropic.com',
-    details: urlChecks[1].status === 'up' || (urlChecks[1] as { httpCode?: number }).httpCode === 401 ? 'reachable' : 'unreachable',
+    details: anthropicCheck.status === 'up' || (anthropicCheck as { httpCode?: number }).httpCode === 401 ? 'reachable' : 'unreachable',
   });
 
   // Overall status

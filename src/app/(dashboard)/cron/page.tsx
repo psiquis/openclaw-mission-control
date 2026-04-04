@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Clock, RefreshCw, AlertCircle, LayoutGrid, CalendarDays, Zap } from "lucide-react";
+import { Clock, RefreshCw, AlertCircle, LayoutGrid, CalendarDays, Zap, Plus, LayoutTemplate } from "lucide-react";
 import { CronJobCard, type CronJob } from "@/components/CronJobCard";
 import { CronWeeklyTimeline } from "@/components/CronWeeklyTimeline";
+import { CronJobModal } from "@/components/CronJobModal";
 
 type ViewMode = "cards" | "timeline";
 
@@ -14,6 +15,10 @@ export default function CronJobsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [runToast, setRunToast] = useState<{ id: string; status: "success" | "error"; name: string } | null>(null);
+
+  // Modal state
+  const [showModal, setShowModal] = useState(false);
+  const [editingJob, setEditingJob] = useState<CronJob | null>(null);
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -86,6 +91,34 @@ export default function CronJobsPage() {
     setTimeout(() => setRunToast(null), 4000);
   };
 
+  const handleEdit = (job: CronJob) => {
+    setEditingJob(job);
+    setShowModal(true);
+  };
+
+  const handleCreate = () => {
+    setEditingJob(null);
+    setShowModal(true);
+  };
+
+  const handleDuplicate = (job: CronJob) => {
+    const dup = { ...job, id: "", name: `Copy of ${job.name}` };
+    setEditingJob(dup as CronJob);
+    setShowModal(true);
+  };
+
+  const handleModalSave = () => {
+    setShowModal(false);
+    setEditingJob(null);
+    setIsLoading(true);
+    fetchJobs();
+  };
+
+  const handleModalClose = () => {
+    setShowModal(false);
+    setEditingJob(null);
+  };
+
   const activeJobs = jobs.filter((j) => j.enabled).length;
   const pausedJobs = jobs.length - activeJobs;
 
@@ -94,42 +127,85 @@ export default function CronJobsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 md:mb-8">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold mb-1" style={{ 
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-heading)'
+          <h1 className="text-2xl md:text-3xl font-bold mb-1" style={{
+            color: "var(--text-primary)",
+            fontFamily: "var(--font-heading)"
           }}>
             Cron Jobs
           </h1>
-          <p className="text-sm md:text-base" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-sm md:text-base" style={{ color: "var(--text-secondary)" }}>
             Scheduled tasks from OpenClaw Gateway
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+          {/* Create button */}
+          <a
+            href="/cron/templates"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.5rem 1rem",
+              backgroundColor: "var(--card)",
+              color: "var(--text-primary)",
+              borderRadius: "0.5rem",
+              border: "1px solid var(--border)",
+              cursor: "pointer",
+              fontWeight: 500,
+              fontSize: "0.85rem",
+              textDecoration: "none",
+              transition: "opacity 0.2s",
+            }}
+          >
+            <LayoutTemplate className="w-4 h-4" />
+            Templates
+          </a>
+          <button
+            onClick={handleCreate}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.5rem 1rem",
+              backgroundColor: "var(--accent)",
+              color: "#000",
+              borderRadius: "0.5rem",
+              border: "none",
+              cursor: "pointer",
+              fontWeight: 700,
+              fontSize: "0.85rem",
+              transition: "opacity 0.2s",
+            }}
+          >
+            <Plus className="w-4 h-4" />
+            Create Job
+          </button>
+
           {/* View mode toggle */}
           <div
             style={{
-              display: 'flex',
-              backgroundColor: 'var(--card)',
-              border: '1px solid var(--border)',
-              borderRadius: '0.5rem',
-              padding: '3px',
+              display: "flex",
+              backgroundColor: "var(--card)",
+              border: "1px solid var(--border)",
+              borderRadius: "0.5rem",
+              padding: "3px",
             }}
           >
             <button
               onClick={() => setViewMode("cards")}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                padding: '0.4rem 0.75rem',
-                borderRadius: '0.35rem',
-                fontSize: '0.8rem',
+                display: "flex",
+                alignItems: "center",
+                gap: "0.35rem",
+                padding: "0.4rem 0.75rem",
+                borderRadius: "0.35rem",
+                fontSize: "0.8rem",
                 fontWeight: 600,
-                backgroundColor: viewMode === "cards" ? 'var(--accent)' : 'transparent',
-                color: viewMode === "cards" ? 'white' : 'var(--text-secondary)',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.15s',
+                backgroundColor: viewMode === "cards" ? "var(--accent)" : "transparent",
+                color: viewMode === "cards" ? "white" : "var(--text-secondary)",
+                border: "none",
+                cursor: "pointer",
+                transition: "all 0.15s",
               }}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
@@ -138,18 +214,18 @@ export default function CronJobsPage() {
             <button
               onClick={() => setViewMode("timeline")}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                padding: '0.4rem 0.75rem',
-                borderRadius: '0.35rem',
-                fontSize: '0.8rem',
+                display: "flex",
+                alignItems: "center",
+                gap: "0.35rem",
+                padding: "0.4rem 0.75rem",
+                borderRadius: "0.35rem",
+                fontSize: "0.8rem",
                 fontWeight: 600,
-                backgroundColor: viewMode === "timeline" ? 'var(--accent)' : 'transparent',
-                color: viewMode === "timeline" ? 'white' : 'var(--text-secondary)',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.15s',
+                backgroundColor: viewMode === "timeline" ? "var(--accent)" : "transparent",
+                color: viewMode === "timeline" ? "white" : "var(--text-secondary)",
+                border: "none",
+                cursor: "pointer",
+                transition: "all 0.15s",
               }}
             >
               <CalendarDays className="w-3.5 h-3.5" />
@@ -160,17 +236,17 @@ export default function CronJobsPage() {
           <button
             onClick={() => { setIsLoading(true); fetchJobs(); }}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.5rem 1rem',
-              backgroundColor: 'var(--card)',
-              color: 'var(--text-primary)',
-              borderRadius: '0.5rem',
-              border: '1px solid var(--border)',
-              cursor: 'pointer',
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.5rem 1rem",
+              backgroundColor: "var(--card)",
+              color: "var(--text-primary)",
+              borderRadius: "0.5rem",
+              border: "1px solid var(--border)",
+              cursor: "pointer",
               fontWeight: 500,
-              transition: 'opacity 0.2s'
+              transition: "opacity 0.2s",
             }}
           >
             <RefreshCw className="w-4 h-4" />
@@ -182,54 +258,54 @@ export default function CronJobsPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-8">
         <div style={{
-          backgroundColor: 'color-mix(in srgb, var(--card) 50%, transparent)',
-          border: '1px solid var(--border)',
-          borderRadius: '0.75rem',
-          padding: '1rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem'
+          backgroundColor: "color-mix(in srgb, var(--card) 50%, transparent)",
+          border: "1px solid var(--border)",
+          borderRadius: "0.75rem",
+          padding: "1rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "1rem",
         }}>
-          <div style={{ padding: '0.75rem', backgroundColor: 'color-mix(in srgb, var(--info) 20%, transparent)', borderRadius: '0.5rem' }}>
-            <Clock className="w-6 h-6" style={{ color: 'var(--info)' }} />
+          <div style={{ padding: "0.75rem", backgroundColor: "color-mix(in srgb, var(--info) 20%, transparent)", borderRadius: "0.5rem" }}>
+            <Clock className="w-6 h-6" style={{ color: "var(--info)" }} />
           </div>
           <div>
-            <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>{jobs.length}</p>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Total Jobs</p>
+            <p style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-primary)" }}>{jobs.length}</p>
+            <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>Total Jobs</p>
           </div>
         </div>
         <div style={{
-          backgroundColor: 'color-mix(in srgb, var(--card) 50%, transparent)',
-          border: '1px solid var(--border)',
-          borderRadius: '0.75rem',
-          padding: '1rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem'
+          backgroundColor: "color-mix(in srgb, var(--card) 50%, transparent)",
+          border: "1px solid var(--border)",
+          borderRadius: "0.75rem",
+          padding: "1rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "1rem",
         }}>
-          <div style={{ padding: '0.75rem', backgroundColor: 'color-mix(in srgb, var(--success) 20%, transparent)', borderRadius: '0.5rem' }}>
-            <RefreshCw className="w-6 h-6" style={{ color: 'var(--success)' }} />
+          <div style={{ padding: "0.75rem", backgroundColor: "color-mix(in srgb, var(--success) 20%, transparent)", borderRadius: "0.5rem" }}>
+            <RefreshCw className="w-6 h-6" style={{ color: "var(--success)" }} />
           </div>
           <div>
-            <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>{activeJobs}</p>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Active</p>
+            <p style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-primary)" }}>{activeJobs}</p>
+            <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>Active</p>
           </div>
         </div>
         <div style={{
-          backgroundColor: 'color-mix(in srgb, var(--card) 50%, transparent)',
-          border: '1px solid var(--border)',
-          borderRadius: '0.75rem',
-          padding: '1rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem'
+          backgroundColor: "color-mix(in srgb, var(--card) 50%, transparent)",
+          border: "1px solid var(--border)",
+          borderRadius: "0.75rem",
+          padding: "1rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "1rem",
         }}>
-          <div style={{ padding: '0.75rem', backgroundColor: 'color-mix(in srgb, var(--warning) 20%, transparent)', borderRadius: '0.5rem' }}>
-            <AlertCircle className="w-6 h-6" style={{ color: 'var(--warning)' }} />
+          <div style={{ padding: "0.75rem", backgroundColor: "color-mix(in srgb, var(--warning) 20%, transparent)", borderRadius: "0.5rem" }}>
+            <AlertCircle className="w-6 h-6" style={{ color: "var(--warning)" }} />
           </div>
           <div>
-            <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>{pausedJobs}</p>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Paused</p>
+            <p style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-primary)" }}>{pausedJobs}</p>
+            <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>Paused</p>
           </div>
         </div>
       </div>
@@ -237,18 +313,18 @@ export default function CronJobsPage() {
       {/* Error */}
       {error && (
         <div style={{
-          marginBottom: '1.5rem',
-          padding: '1rem',
-          backgroundColor: 'color-mix(in srgb, var(--error) 10%, transparent)',
-          border: '1px solid color-mix(in srgb, var(--error) 30%, transparent)',
-          borderRadius: '0.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem'
+          marginBottom: "1.5rem",
+          padding: "1rem",
+          backgroundColor: "color-mix(in srgb, var(--error) 10%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--error) 30%, transparent)",
+          borderRadius: "0.5rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.75rem",
         }}>
-          <AlertCircle className="w-5 h-5" style={{ color: 'var(--error)' }} />
-          <span style={{ color: 'var(--error)' }}>{error}</span>
-          <button onClick={() => setError(null)} style={{ marginLeft: 'auto', color: 'var(--error)', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <AlertCircle className="w-5 h-5" style={{ color: "var(--error)" }} />
+          <span style={{ color: "var(--error)" }}>{error}</span>
+          <button onClick={() => setError(null)} style={{ marginLeft: "auto", color: "var(--error)", background: "none", border: "none", cursor: "pointer" }}>
             Dismiss
           </button>
         </div>
@@ -256,62 +332,89 @@ export default function CronJobsPage() {
 
       {/* Loading */}
       {isLoading ? (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem 0' }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "3rem 0" }}>
           <div style={{
-            width: '2rem', height: '2rem',
-            border: '2px solid var(--accent)', borderTopColor: 'transparent',
-            borderRadius: '50%', animation: 'spin 1s linear infinite'
+            width: "2rem", height: "2rem",
+            border: "2px solid var(--accent)", borderTopColor: "transparent",
+            borderRadius: "50%", animation: "spin 1s linear infinite",
           }} />
         </div>
       ) : jobs.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '4rem 0' }}>
-          <Clock className="w-8 h-8 mx-auto mb-4" style={{ color: 'var(--text-muted)' }} />
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-            No cron jobs found
+        /* Empty state */
+        <div style={{ textAlign: "center", padding: "4rem 0" }}>
+          <div style={{
+            width: "4rem", height: "4rem", borderRadius: "1rem",
+            backgroundColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            margin: "0 auto 1.5rem",
+          }}>
+            <Clock className="w-8 h-8" style={{ color: "var(--accent)" }} />
+          </div>
+          <h3 style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "0.5rem" }}>
+            No cron jobs yet
           </h3>
-          <p style={{ color: 'var(--text-secondary)' }}>
-            Create cron jobs via Telegram or the OpenClaw CLI
+          <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem", maxWidth: "28rem", marginLeft: "auto", marginRight: "auto" }}>
+            Schedule automated tasks for your agents. Create recurring jobs, interval-based triggers, or one-shot executions.
           </p>
+          <button
+            onClick={handleCreate}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.75rem 1.5rem",
+              backgroundColor: "var(--accent)",
+              color: "#000",
+              borderRadius: "0.5rem",
+              border: "none",
+              cursor: "pointer",
+              fontWeight: 700,
+              fontSize: "0.9rem",
+            }}
+          >
+            <Plus className="w-5 h-5" />
+            Create Your First Job
+          </button>
         </div>
       ) : viewMode === "timeline" ? (
         /* Timeline View */
         <div
           className="rounded-xl overflow-hidden"
           style={{
-            backgroundColor: 'var(--card)',
-            border: '1px solid var(--border)',
-            padding: '1.25rem',
+            backgroundColor: "var(--card)",
+            border: "1px solid var(--border)",
+            padding: "1.25rem",
           }}
         >
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              marginBottom: '1.25rem',
-              paddingBottom: '1rem',
-              borderBottom: '1px solid var(--border)',
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+              marginBottom: "1.25rem",
+              paddingBottom: "1rem",
+              borderBottom: "1px solid var(--border)",
             }}
           >
-            <CalendarDays className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+            <CalendarDays className="w-5 h-5" style={{ color: "var(--accent)" }} />
             <h2
               style={{
-                fontSize: '1rem',
+                fontSize: "1rem",
                 fontWeight: 700,
-                color: 'var(--text-primary)',
-                fontFamily: 'var(--font-heading)',
+                color: "var(--text-primary)",
+                fontFamily: "var(--font-heading)",
               }}
             >
               7-Day Schedule Overview
             </h2>
             <span
               style={{
-                marginLeft: 'auto',
-                fontSize: '0.75rem',
-                color: 'var(--text-muted)',
-                backgroundColor: 'var(--card-elevated)',
-                padding: '0.25rem 0.6rem',
-                borderRadius: '0.35rem',
+                marginLeft: "auto",
+                fontSize: "0.75rem",
+                color: "var(--text-muted)",
+                backgroundColor: "var(--card-elevated)",
+                padding: "0.25rem 0.6rem",
+                borderRadius: "0.35rem",
               }}
             >
               All times in local timezone
@@ -323,32 +426,33 @@ export default function CronJobsPage() {
         /* Cards View */
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
           {jobs.map((job) => (
-            <div key={job.id} style={{ position: 'relative' }}>
+            <div key={job.id} style={{ position: "relative" }}>
               <CronJobCard
                 job={job}
                 onToggle={handleToggle}
-                onEdit={() => {}}
+                onEdit={handleEdit}
                 onDelete={handleDelete}
                 onRun={handleRun}
+                onDuplicate={handleDuplicate}
               />
               {deleteConfirm === job.id && (
                 <div style={{
-                  position: 'absolute', inset: 0,
-                  backgroundColor: 'rgba(12, 12, 12, 0.9)',
-                  borderRadius: '0.75rem',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  backdropFilter: 'blur(4px)',
+                  position: "absolute", inset: 0,
+                  backgroundColor: "rgba(12, 12, 12, 0.9)",
+                  borderRadius: "0.75rem",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  backdropFilter: "blur(4px)",
                   zIndex: 10,
                 }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{ color: 'var(--text-primary)', marginBottom: '1rem' }}>Delete &quot;{job.name}&quot;?</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ textAlign: "center" }}>
+                    <p style={{ color: "var(--text-primary)", marginBottom: "1rem" }}>Delete &quot;{job.name}&quot;?</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                       <button onClick={() => setDeleteConfirm(null)}
-                        style={{ padding: '0.5rem 1rem', color: 'var(--text-secondary)', background: 'none', border: 'none', borderRadius: '0.5rem', cursor: 'pointer' }}>
+                        style={{ padding: "0.5rem 1rem", color: "var(--text-secondary)", background: "none", border: "none", borderRadius: "0.5rem", cursor: "pointer" }}>
                         Cancel
                       </button>
                       <button onClick={() => handleDelete(job.id)}
-                        style={{ padding: '0.5rem 1rem', backgroundColor: 'var(--error)', color: 'var(--text-primary)', border: 'none', borderRadius: '0.5rem', cursor: 'pointer' }}>
+                        style={{ padding: "0.5rem 1rem", backgroundColor: "var(--error)", color: "var(--text-primary)", border: "none", borderRadius: "0.5rem", cursor: "pointer" }}>
                         Delete
                       </button>
                     </div>
@@ -360,34 +464,42 @@ export default function CronJobsPage() {
         </div>
       )}
 
+      {/* Cron Job Modal */}
+      <CronJobModal
+        isOpen={showModal}
+        onClose={handleModalClose}
+        onSave={handleModalSave}
+        editingJob={editingJob}
+      />
+
       {/* Run toast notification */}
       {runToast && (
         <div
           style={{
-            position: 'fixed',
-            bottom: '2.5rem',
-            right: '1.5rem',
+            position: "fixed",
+            bottom: "2.5rem",
+            right: "1.5rem",
             zIndex: 100,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            padding: '0.875rem 1.25rem',
-            borderRadius: '0.75rem',
-            backdropFilter: 'blur(12px)',
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem",
+            padding: "0.875rem 1.25rem",
+            borderRadius: "0.75rem",
+            backdropFilter: "blur(12px)",
             backgroundColor: runToast.status === "success"
-              ? 'color-mix(in srgb, var(--success) 15%, rgba(12,12,12,0.95))'
-              : 'color-mix(in srgb, var(--error) 15%, rgba(12,12,12,0.95))',
-            border: `1px solid ${runToast.status === "success" ? 'color-mix(in srgb, var(--success) 40%, transparent)' : 'color-mix(in srgb, var(--error) 40%, transparent)'}`,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-            color: 'var(--text-primary)',
-            fontSize: '0.875rem',
+              ? "color-mix(in srgb, var(--success) 15%, rgba(12,12,12,0.95))"
+              : "color-mix(in srgb, var(--error) 15%, rgba(12,12,12,0.95))",
+            border: `1px solid ${runToast.status === "success" ? "color-mix(in srgb, var(--success) 40%, transparent)" : "color-mix(in srgb, var(--error) 40%, transparent)"}`,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+            color: "var(--text-primary)",
+            fontSize: "0.875rem",
             fontWeight: 500,
-            animation: 'slideInRight 0.3s ease',
+            animation: "slideInRight 0.3s ease",
           }}
         >
           <Zap
             className="w-4 h-4"
-            style={{ color: runToast.status === "success" ? 'var(--success)' : 'var(--error)' }}
+            style={{ color: runToast.status === "success" ? "var(--success)" : "var(--error)" }}
           />
           {runToast.status === "success"
             ? `✓ "${runToast.name}" triggered!`

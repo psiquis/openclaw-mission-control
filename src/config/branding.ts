@@ -8,7 +8,7 @@
 export const BRANDING = {
   // Main agent name and emoji
   agentName: process.env.NEXT_PUBLIC_AGENT_NAME || "Mission Control",
-  agentEmoji: process.env.NEXT_PUBLIC_AGENT_EMOJI || "🦞",
+  agentEmoji: process.env.NEXT_PUBLIC_AGENT_EMOJI || "",
 
   // About page — agent identity
   agentLocation: process.env.NEXT_PUBLIC_AGENT_LOCATION || "",

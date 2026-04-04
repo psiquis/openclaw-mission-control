@@ -31,7 +31,7 @@ const JOB_COLORS = [
   "#CE93D8", // lavender
   "#F48FB1", // pink
   "#80DEEA", // teal
-  "#FFCC02", // yellow (TenacitOS accent)
+  "#6366F1", // indigo (accent)
   "#A5D6A7", // mint
   "#FF8A65", // deep orange
 ];
@@ -72,7 +72,7 @@ function formatIntervalLabel(ms: number): string {
 
 function getJobEmoji(agentId: string): string {
   const emojis: Record<string, string> = {
-    main: "🦞",
+    main: "",
     academic: "🎓",
     infra: "🔧",
     studio: "🎬",

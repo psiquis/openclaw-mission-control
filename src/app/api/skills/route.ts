@@ -1,15 +1,20 @@
 import { NextResponse } from 'next/server';
-import { scanAllSkills } from '@/lib/skill-parser';
+import { getAllSkills, getSkillStats } from '@/lib/skills-db';
 
 export async function GET() {
   try {
-    const skills = scanAllSkills();
-    
+    const skills = getAllSkills();
+    const stats = getSkillStats();
+
     return NextResponse.json({
-      skills,
+      skills: skills.map(s => ({
+        ...s,
+        risk_reasons: s.risk_reasons ? JSON.parse(s.risk_reasons as string) : [],
+      })),
+      stats,
     });
   } catch (error) {
-    console.error('Failed to scan skills:', error);
-    return NextResponse.json({ skills: [] }, { status: 500 });
+    console.error('Failed to fetch skills:', error);
+    return NextResponse.json({ skills: [], stats: null }, { status: 500 });
   }
 }

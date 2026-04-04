@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     // secure=true in production (HTTPS), false in dev (HTTP localhost)
     response.cookies.set("mc_auth", process.env.AUTH_SECRET!, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: "/",

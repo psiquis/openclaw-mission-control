@@ -71,22 +71,31 @@ export async function GET() {
       const botToken = telegramAccount?.botToken;
 
       // Check if agent has recent activity
-      const memoryPath = join(agent.workspace, "memory");
       let lastActivity = undefined;
       let status: "online" | "offline" = "offline";
 
       try {
-        const today = new Date().toISOString().split("T")[0];
-        const memoryFile = join(memoryPath, `${today}.md`);
-        const stat = require("fs").statSync(memoryFile);
-        lastActivity = stat.mtime.toISOString();
-        // Consider online if activity within last 5 minutes
-        status =
-          Date.now() - stat.mtime.getTime() < 5 * 60 * 1000
-            ? "online"
-            : "offline";
+        // Check agent sessions directory for recent activity
+        const agentId = agent.id;
+        const sessionsDir = join(
+          process.env.OPENCLAW_DIR || '/home/ola3/.openclaw',
+          'agents', agentId, 'sessions'
+        );
+        const sessionFiles = require("fs").readdirSync(sessionsDir)
+          .filter((f: string) => f.endsWith('.jsonl'))
+          .map((f: string) => {
+            const stat = require("fs").statSync(join(sessionsDir, f));
+            return { file: f, mtime: stat.mtime.getTime() };
+          })
+          .sort((a: { mtime: number }, b: { mtime: number }) => b.mtime - a.mtime);
+
+        if (sessionFiles.length > 0) {
+          lastActivity = new Date(sessionFiles[0].mtime).toISOString();
+          // Consider online if activity within last 5 minutes
+          status = Date.now() - sessionFiles[0].mtime < 5 * 60 * 1000 ? "online" : "offline";
+        }
       } catch (e) {
-        // No recent activity
+        // No sessions directory or no files
       }
 
       // Get details of allowed subagents

@@ -1,55 +1,36 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Dependencies
+node_modules/
+.pnpm-store/
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# Next.js
+.next/
+out/
 
-# testing
-/coverage
+# Environment
+.env
+.env.local
+.env.*.local
 
-# next.js
-/.next/
-/out/
+# Database files (auto-generated)
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/activities.json
+data/configured-skills.json
+data/cron-jobs.json
+data/notifications.json
+data/tasks.json
 
-# production
-/build
-
-# misc
+# OS
 .DS_Store
-*.pem
+Thumbs.db
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+# IDE
+.vscode/
+.idea/
 
-# env files (contains sensitive credentials)
-.env*
-!.env.example
+# Logs
+*.log
 
-# production data (contains instance-specific operational data)
-/data/*.json
-!data/*.example.json
-/data/*.db
-/data/*.sqlite
-/data/*.sqlite3
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
+# Build
 next-env.d.ts
-
-# design files (local only)
-/design/
-
-# backup files
-*.bak

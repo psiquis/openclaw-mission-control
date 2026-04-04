@@ -39,6 +39,14 @@ export const MODEL_PRICING: ModelPricing[] = [
     outputPricePerMillion: 4.00,
     contextWindow: 200000,
   },
+  {
+    id: "anthropic/claude-sonnet-4-6",
+    name: "Sonnet 4.6",
+    alias: "sonnet-4-6",
+    inputPricePerMillion: 3.00,
+    outputPricePerMillion: 15.00,
+    contextWindow: 200000,
+  },
   // Google Gemini models
   {
     id: "google/gemini-2.5-flash",
@@ -55,6 +63,35 @@ export const MODEL_PRICING: ModelPricing[] = [
     inputPricePerMillion: 1.25,
     outputPricePerMillion: 5.00,
     contextWindow: 2000000,
+  },
+  // Local Ollama models (free)
+  {
+    id: "ollama/glm-4.7-flash",
+    name: "GLM 4.7 Flash (local)",
+    inputPricePerMillion: 0,
+    outputPricePerMillion: 0,
+    contextWindow: 32768,
+  },
+  {
+    id: "ollama/gemma3:12b",
+    name: "Gemma 3 12B (local)",
+    inputPricePerMillion: 0,
+    outputPricePerMillion: 0,
+    contextWindow: 131072,
+  },
+  {
+    id: "ollama/qwen3:4b",
+    name: "Qwen 3 4B (local)",
+    inputPricePerMillion: 0,
+    outputPricePerMillion: 0,
+    contextWindow: 32768,
+  },
+  {
+    id: "ollama/phi4",
+    name: "Phi-4 (local)",
+    inputPricePerMillion: 0,
+    outputPricePerMillion: 0,
+    contextWindow: 16384,
   },
   // X.AI Grok
   {
@@ -129,6 +166,9 @@ export function normalizeModelId(modelId: string): string {
     "claude-haiku-3-5": "anthropic/claude-haiku-3-5",
     "gemini-2.5-flash": "google/gemini-2.5-flash",
     "gemini-2.5-pro": "google/gemini-2.5-pro",
+    // Anthropic Sonnet 4.6
+    "claude-sonnet-4-6": "anthropic/claude-sonnet-4-6",
+    "sonnet-4-6": "anthropic/claude-sonnet-4-6",
     // MiniMax
     minimax: "minimax/minimax-m2.5",
     "minimax-m2.5": "minimax/minimax-m2.5",

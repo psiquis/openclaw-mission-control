@@ -47,7 +47,7 @@ export function TopBar() {
       >
         {/* Left: Logo & Title */}
         <div className="flex items-center gap-3">
-          <span style={{ fontSize: "20px" }}>🦞</span>
+          
           <h1
             style={{
               fontFamily: "var(--font-heading)",
@@ -57,28 +57,21 @@ export function TopBar() {
               letterSpacing: "-0.5px",
             }}
           >
-            TenacitOS
+            Mission Control
           </h1>
           {/* Version Badge */}
-          <div
-            style={{
-              backgroundColor: "var(--accent-soft)",
-              borderRadius: "4px",
-              padding: "2px 8px",
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: "9px",
-                fontWeight: 700,
-                color: "var(--accent)",
-                letterSpacing: "1px",
-              }}
-            >
-              v1.0
-            </span>
-          </div>
+          <span style={{
+            fontSize: "10px",
+            padding: "1px 6px",
+            borderRadius: "4px",
+            backgroundColor: "rgba(255,255,255,0.08)",
+            color: "var(--text-muted)",
+            fontFamily: "monospace",
+            fontWeight: 500,
+            letterSpacing: "0.5px",
+          }}>
+            v0.2.2
+          </span>
         </div>
 
         {/* Right: Search + Notifications + User */}
@@ -139,7 +132,7 @@ export function TopBar() {
                   color: "var(--text-primary)",
                 }}
               >
-                C
+                R
               </span>
             </div>
             {/* Name */}
@@ -151,7 +144,7 @@ export function TopBar() {
                 color: "var(--text-secondary)",
               }}
             >
-              Carlos
+              Rubén
             </span>
           </div>
         </div>

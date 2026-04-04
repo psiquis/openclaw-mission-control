@@ -54,7 +54,7 @@ function LoginForm() {
             className="w-7 h-7" 
             style={{ color: 'var(--accent)' }} 
           />
-          <span className="text-2xl">🦞</span>
+          
           <h1 
             className="text-xl font-bold"
             style={{ 
@@ -127,7 +127,7 @@ function LoginForm() {
         className="text-center text-xs mt-6"
         style={{ color: 'var(--text-muted)' }}
       >
-        Tenacitas Agent Dashboard
+        OpenClaw Agent Fleet Dashboard
       </p>
     </div>
   );

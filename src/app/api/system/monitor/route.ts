@@ -7,11 +7,6 @@ const execAsync = promisify(exec);
 
 // Services monitored per backend
 const SYSTEMD_SERVICES = ["mission-control"];
-const PM2_SERVICES = ["classvault", "content-vault", "postiz-simple", "brain"];
-// creatoros not deployed yet — shown as "not_deployed"
-const PLACEHOLDER_SERVICES = [
-  { name: "creatoros", description: "Creatoros Platform", status: "not_deployed" },
-];
 
 interface ServiceEntry {
   name: string;
@@ -60,7 +55,7 @@ function normalizePm2Status(status: string): string {
 
 // Friendly display names for PM2 process names
 const SERVICE_DESCRIPTIONS: Record<string, string> = {
-  "mission-control": "Mission Control – Tenacitas Dashboard",
+  "mission-control": "Mission Control – OpenClaw Dashboard",
   classvault: "ClassVault – LMS Platform",
   "content-vault": "Content Vault – Draft Management Webapp",
   "postiz-simple": "Postiz – Social Media Scheduler",
@@ -71,9 +66,17 @@ const SERVICE_DESCRIPTIONS: Record<string, string> = {
 export async function GET() {
   try {
     // ── CPU ──────────────────────────────────────────────────────────────────
-    const cpuCount = os.cpus().length;
+    const cpus = os.cpus();
+    const cpuCount = cpus.length;
     const loadAvg = os.loadavg();
     const cpuUsage = Math.min(Math.round((loadAvg[0] / cpuCount) * 100), 100);
+
+    // Real per-core usage from os.cpus() times
+    const coreUsages = cpus.map((cpu) => {
+      const total = Object.values(cpu.times).reduce((a, b) => a + b, 0);
+      const idle = cpu.times.idle;
+      return Math.round(((total - idle) / total) * 100);
+    });
 
     // ── RAM ──────────────────────────────────────────────────────────────────
     const totalMem = os.totalmem();
@@ -156,7 +159,7 @@ export async function GET() {
       }
     }
 
-    // 2. PM2 services — single call, parse JSON
+    // 2. PM2 services — auto-discover all running processes
     try {
       const { stdout: pm2Json } = await execAsync("pm2 jlist 2>/dev/null");
       const pm2List = JSON.parse(pm2Json) as Array<{
@@ -170,23 +173,7 @@ export async function GET() {
         };
       }>;
 
-      const pm2Map: Record<string, (typeof pm2List)[0]> = {};
       for (const proc of pm2List) {
-        pm2Map[proc.name] = proc;
-      }
-
-      for (const name of PM2_SERVICES) {
-        const proc = pm2Map[name];
-        if (!proc) {
-          services.push({
-            name,
-            status: "unknown",
-            description: SERVICE_DESCRIPTIONS[name] ?? name,
-            backend: "pm2",
-          });
-          continue;
-        }
-
         const rawStatus = proc.pm2_env?.status ?? "unknown";
         const uptime =
           rawStatus === "online" && proc.pm2_env?.pm_uptime
@@ -194,9 +181,9 @@ export async function GET() {
             : null;
 
         services.push({
-          name,
+          name: proc.name,
           status: normalizePm2Status(rawStatus),
-          description: SERVICE_DESCRIPTIONS[name] ?? name,
+          description: SERVICE_DESCRIPTIONS[proc.name] ?? proc.name,
           backend: "pm2",
           uptime,
           restarts: proc.pm2_env?.restart_time ?? 0,
@@ -207,25 +194,11 @@ export async function GET() {
       }
     } catch (err) {
       console.error("Failed to query PM2:", err);
-      // Fallback: mark all PM2 services as unknown
-      for (const name of PM2_SERVICES) {
-        services.push({
-          name,
-          status: "unknown",
-          description: SERVICE_DESCRIPTIONS[name] ?? name,
-          backend: "pm2",
-        });
-      }
-    }
-
-    // 3. Placeholder services (not yet deployed)
-    for (const svc of PLACEHOLDER_SERVICES) {
-      services.push({ ...svc, backend: "none" });
     }
 
     // ── Tailscale VPN ─────────────────────────────────────────────────────────
     let tailscaleActive = false;
-    let tailscaleIp = "100.122.105.85";
+    let tailscaleIp = "";
     const tailscaleDevices: TailscaleDevice[] = [];
     try {
       const { stdout: tsStatus } = await execAsync("tailscale status 2>/dev/null || true");
@@ -285,7 +258,7 @@ export async function GET() {
     return NextResponse.json({
       cpu: {
         usage: cpuUsage,
-        cores: os.cpus().map(() => Math.round(Math.random() * 100)),
+        cores: coreUsages,
         loadAvg,
       },
       ram: {
@@ -305,14 +278,7 @@ export async function GET() {
       tailscale: {
         active: tailscaleActive,
         ip: tailscaleIp,
-        devices:
-          tailscaleDevices.length > 0
-            ? tailscaleDevices
-            : [
-                { ip: "100.122.105.85", hostname: "srv1328267", os: "linux", online: true },
-                { ip: "100.106.86.52", hostname: "iphone182", os: "iOS", online: true },
-                { ip: "100.72.14.113", hostname: "macbook-pro-de-carlos", os: "macOS", online: true },
-              ],
+        devices: tailscaleDevices,
       },
       firewall: {
         active: firewallActive || true,

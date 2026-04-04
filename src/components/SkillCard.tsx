@@ -1,102 +1,95 @@
-"use client";
+'use client';
 
-import { Puzzle, FolderOpen, ArrowRight } from "lucide-react";
+import { FileText, Play, AlertTriangle, Zap, Users } from 'lucide-react';
+import { RiskBadge, CategoryBadge, ExecBadge } from './SkillBadges';
 
 interface SkillCardProps {
   skill: {
     id: string;
     name: string;
-    description: string;
-    location: string;
-    source: "workspace" | "system";
-    emoji?: string;
-    fileCount: number;
+    description: string | null;
+    source: string;
+    category: string;
+    risk_level: string;
+    has_exec: number;
+    enabled: number;
+    file_count: number;
+    invoke_count: number;
+    error_count: number;
+    updated_at: string;
+    agents?: string[];
   };
-  onViewDetails: () => void;
+  onClick?: () => void;
 }
 
-export function SkillCard({ skill, onViewDetails }: SkillCardProps) {
-  const truncatedDesc =
-    skill.description.length > 120
-      ? skill.description.slice(0, 120) + "..."
-      : skill.description;
-
-  const iconBgColor = skill.source === "workspace" 
-    ? "rgba(168, 85, 247, 0.15)" 
-    : "rgba(59, 130, 246, 0.15)";
-  
-  const iconColor = skill.source === "workspace" ? "#A855F7" : "#3B82F6";
+export default function SkillCard({ skill, onClick }: SkillCardProps) {
+  const desc = skill.description || 'No description';
+  const truncDesc = desc.length > 140 ? desc.slice(0, 140) + '…' : desc;
+  const agents = skill.agents || [];
 
   return (
-    <div 
-      className="rounded-xl p-3 md:p-5 transition-all hover:shadow-lg group"
-      style={{ 
-        backgroundColor: "var(--card)", 
-        border: "1px solid var(--border)" 
+    <div
+      onClick={onClick}
+      className="group rounded-xl border cursor-pointer transition-all hover:scale-[1.01]"
+      style={{
+        backgroundColor: skill.enabled ? 'var(--surface)' : 'color-mix(in srgb, var(--error) 5%, var(--surface))',
+        borderColor: skill.enabled ? 'var(--border)' : 'color-mix(in srgb, var(--error) 20%, var(--border))',
+        opacity: skill.enabled ? 1 : 0.7,
       }}
     >
-      <div className="flex items-start gap-3 md:gap-4 mb-3 md:mb-4">
-        <div 
-          className="p-2 md:p-3 rounded-lg transition-colors"
-          style={{ backgroundColor: iconBgColor }}
-        >
-          {skill.emoji ? (
-            <span className="text-xl md:text-2xl">{skill.emoji}</span>
-          ) : (
-            <Puzzle className="w-5 h-5 md:w-6 md:h-6" style={{ color: iconColor }} />
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 
-            className="font-bold text-base md:text-lg truncate"
-            style={{ color: "var(--text-primary)", fontFamily: "var(--font-heading)" }}
-          >
+      <div className="p-4">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <h3 className="text-sm font-semibold truncate flex-1" style={{ color: 'var(--text-primary)' }}>
             {skill.name}
           </h3>
-          <span
-            className="inline-block text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded mt-1"
-            style={{
-              backgroundColor: skill.source === "workspace" 
-                ? "rgba(168, 85, 247, 0.2)" 
-                : "rgba(59, 130, 246, 0.2)",
-              color: skill.source === "workspace" ? "#C4B5FD" : "#93C5FD"
-            }}
-          >
-            {skill.source === "workspace" ? "Workspace" : "System"}
+          {!skill.enabled && (
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ color: 'var(--error)', backgroundColor: 'color-mix(in srgb, var(--error) 15%, transparent)' }}>
+              disabled
+            </span>
+          )}
+        </div>
+
+        {/* Description */}
+        <p className="text-xs mb-3 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+          {truncDesc}
+        </p>
+
+        {/* Badges */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          <CategoryBadge category={skill.category} />
+          <RiskBadge level={skill.risk_level} />
+          {skill.has_exec === 1 && <ExecBadge />}
+          {agents.length > 0 && (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
+              style={{ color: 'var(--info)', backgroundColor: 'color-mix(in srgb, var(--info) 15%, transparent)' }}
+            >
+              <Users className="w-3 h-3" />
+              {agents.join(', ')}
+            </span>
+          )}
+        </div>
+
+        {/* Stats row */}
+        <div className="flex items-center gap-4 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+          <span className="inline-flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+            <FileText className="w-3 h-3" /> {skill.file_count}
+          </span>
+          {skill.invoke_count > 0 && (
+            <span className="inline-flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+              <Play className="w-3 h-3" /> {skill.invoke_count}
+            </span>
+          )}
+          {skill.error_count > 0 && (
+            <span className="inline-flex items-center gap-1 text-xs" style={{ color: 'var(--error)' }}>
+              <AlertTriangle className="w-3 h-3" /> {skill.error_count}
+            </span>
+          )}
+          <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>
+            {new Date(skill.updated_at).toLocaleDateString()}
           </span>
         </div>
-      </div>
-
-      <p 
-        className="text-xs md:text-sm mb-3 md:mb-4 line-clamp-2"
-        style={{ color: "var(--text-secondary)" }}
-      >
-        {truncatedDesc}
-      </p>
-
-      <div 
-        className="flex items-center gap-2 text-[10px] md:text-xs mb-3 md:mb-4"
-        style={{ color: "var(--text-muted)" }}
-      >
-        <FolderOpen className="w-3 h-3 md:w-3.5 md:h-3.5" />
-        <span className="truncate">{skill.location}</span>
-      </div>
-
-      <div 
-        className="flex items-center justify-between pt-2 md:pt-3"
-        style={{ borderTop: "1px solid var(--border)" }}
-      >
-        <span className="text-[10px] md:text-xs" style={{ color: "var(--text-muted)" }}>
-          {skill.fileCount} files
-        </span>
-        <button
-          onClick={onViewDetails}
-          className="flex items-center gap-1 md:gap-1.5 text-xs md:text-sm transition-colors hover:opacity-80"
-          style={{ color: "var(--accent)" }}
-        >
-          View Details
-          <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4" />
-        </button>
       </div>
     </div>
   );

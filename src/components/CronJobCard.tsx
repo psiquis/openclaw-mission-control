@@ -15,6 +15,8 @@ import {
   XCircle,
   History,
   Loader2,
+  Pencil,
+  Copy,
 } from "lucide-react";
 
 export interface CronJob {
@@ -30,6 +32,16 @@ export interface CronJob {
   lastRun: string | null;
   sessionTarget: string;
   payload: Record<string, unknown>;
+  // Enhanced fields
+  payloadKind?: string;
+  message?: string;
+  model?: string;
+  thinking?: string;
+  lightContext?: boolean;
+  tools?: string;
+  deliveryMode?: string;
+  deliveryChannel?: string;
+  deliveryTo?: string;
 }
 
 interface RunHistoryEntry {
@@ -48,19 +60,19 @@ interface CronJobCardProps {
   onEdit: (job: CronJob) => void;
   onDelete: (id: string) => void;
   onRun?: (id: string) => Promise<void>;
+  onDuplicate?: (job: CronJob) => void;
 }
 
 const AGENT_EMOJI: Record<string, string> = {
-  main: "🦞",
-  academic: "🎓",
-  infra: "🔧",
-  studio: "🎬",
-  social: "📱",
-  linkedin: "💼",
-  freelance: "🔧",
+  ruben: "🧠",
+  bill: "🖥️",
+  elon: "🚀",
+  quin: "⚡",
+  trump: "📢",
+  warren: "💰",
 };
 
-export function CronJobCard({ job, onToggle, onDelete, onRun }: CronJobCardProps) {
+export function CronJobCard({ job, onToggle, onEdit, onDelete, onRun, onDuplicate }: CronJobCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
@@ -86,7 +98,6 @@ export function CronJobCard({ job, onToggle, onDelete, onRun }: CronJobCardProps
       setRunResult("error");
     } finally {
       setIsRunning(false);
-      // Clear result indicator after 3s
       setTimeout(() => setRunResult(null), 3000);
     }
   }, [job.id, onRun, isRunning]);
@@ -168,11 +179,13 @@ export function CronJobCard({ job, onToggle, onDelete, onRun }: CronJobCardProps
     <div
       className="rounded-xl"
       style={{
-        border: '1px solid',
-        borderColor: job.enabled ? 'var(--border)' : 'rgba(42, 42, 42, 0.5)',
-        backgroundColor: job.enabled ? 'color-mix(in srgb, var(--card) 50%, transparent)' : 'color-mix(in srgb, var(--card) 30%, transparent)',
+        border: "1px solid",
+        borderColor: job.enabled ? "var(--border)" : "rgba(42, 42, 42, 0.5)",
+        backgroundColor: job.enabled
+          ? "color-mix(in srgb, var(--card) 50%, transparent)"
+          : "color-mix(in srgb, var(--card) 30%, transparent)",
         opacity: job.enabled ? 1 : 0.6,
-        transition: 'all 0.2s'
+        transition: "all 0.2s",
       }}
     >
       <div className="p-3 md:p-5">
@@ -181,27 +194,61 @@ export function CronJobCard({ job, onToggle, onDelete, onRun }: CronJobCardProps
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
               <span title={job.agentId}>{agentEmoji}</span>
-              <h3 className="text-sm md:text-lg font-semibold truncate" style={{ 
-                color: 'var(--text-primary)',
-                fontFamily: 'var(--font-heading)'
-              }}>
+              <h3
+                className="text-sm md:text-lg font-semibold truncate"
+                style={{
+                  color: "var(--text-primary)",
+                  fontFamily: "var(--font-heading)",
+                }}
+              >
                 {job.name}
               </h3>
               <span
                 className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full whitespace-nowrap"
                 style={{
-                  backgroundColor: job.enabled 
-                    ? 'color-mix(in srgb, var(--success) 20%, transparent)' 
-                    : 'rgba(42, 42, 42, 0.5)',
-                  color: job.enabled ? 'var(--success)' : 'var(--text-secondary)'
+                  backgroundColor: job.enabled
+                    ? "color-mix(in srgb, var(--success) 20%, transparent)"
+                    : "rgba(42, 42, 42, 0.5)",
+                  color: job.enabled ? "var(--success)" : "var(--text-secondary)",
                 }}
               >
                 {job.enabled ? "Active" : "Paused"}
               </span>
+              {/* Payload kind badge */}
+              {job.payloadKind && (
+                <span
+                  className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full whitespace-nowrap"
+                  style={{
+                    backgroundColor:
+                      job.payloadKind === "agentTurn"
+                        ? "color-mix(in srgb, var(--info) 20%, transparent)"
+                        : "color-mix(in srgb, var(--warning) 20%, transparent)",
+                    color: job.payloadKind === "agentTurn" ? "var(--info)" : "var(--warning)",
+                  }}
+                >
+                  {job.payloadKind === "agentTurn" ? "💬 Agent" : "⚙️ System"}
+                </span>
+              )}
             </div>
-            <p className="text-xs md:text-sm mt-0.5 md:mt-1 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+            <p
+              className="text-xs md:text-sm mt-0.5 md:mt-1 line-clamp-2"
+              style={{ color: "var(--text-secondary)" }}
+            >
               {job.description}
             </p>
+            {/* Message preview */}
+            {job.message && (
+              <p
+                className="text-xs mt-1 line-clamp-1"
+                style={{
+                  color: "var(--text-muted)",
+                  fontFamily: "monospace",
+                  fontSize: "0.7rem",
+                }}
+              >
+                {job.message.length > 100 ? job.message.substring(0, 100) + "…" : job.message}
+              </p>
+            )}
           </div>
 
           {/* Toggle Button */}
@@ -211,14 +258,14 @@ export function CronJobCard({ job, onToggle, onDelete, onRun }: CronJobCardProps
             title={job.enabled ? "Pause job" : "Enable job"}
             className="p-1.5 md:p-2 rounded-lg flex-shrink-0"
             style={{
-              border: 'none',
-              cursor: isToggling ? 'not-allowed' : 'pointer',
+              border: "none",
+              cursor: isToggling ? "not-allowed" : "pointer",
               opacity: isToggling ? 0.5 : 1,
-              backgroundColor: job.enabled 
-                ? 'color-mix(in srgb, var(--success) 20%, transparent)' 
-                : 'rgba(42, 42, 42, 0.5)',
-              color: job.enabled ? 'var(--success)' : 'var(--text-secondary)',
-              transition: 'all 0.2s'
+              backgroundColor: job.enabled
+                ? "color-mix(in srgb, var(--success) 20%, transparent)"
+                : "rgba(42, 42, 42, 0.5)",
+              color: job.enabled ? "var(--success)" : "var(--text-secondary)",
+              transition: "all 0.2s",
             }}
           >
             {isToggling ? (
@@ -234,28 +281,45 @@ export function CronJobCard({ job, onToggle, onDelete, onRun }: CronJobCardProps
         {/* Schedule Info */}
         <div className="flex flex-wrap gap-2 md:gap-4 mb-2 md:mb-4">
           <div className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm">
-            <Clock className="w-3.5 h-3.5 md:w-4 md:h-4" style={{ color: 'var(--info)' }} />
-            <code className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded" style={{
-              backgroundColor: 'rgba(42, 42, 42, 0.5)',
-              color: 'var(--text-secondary)',
-              fontFamily: 'monospace'
-            }}>
+            <Clock className="w-3.5 h-3.5 md:w-4 md:h-4" style={{ color: "var(--info)" }} />
+            <code
+              className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded"
+              style={{
+                backgroundColor: "rgba(42, 42, 42, 0.5)",
+                color: "var(--text-secondary)",
+                fontFamily: "monospace",
+              }}
+            >
               {job.scheduleDisplay}
             </code>
           </div>
           <div className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm">
-            <Bot className="w-3.5 h-3.5 md:w-4 md:h-4" style={{ color: 'var(--text-muted)' }} />
-            <span style={{ color: 'var(--text-muted)' }}>{job.sessionTarget}</span>
+            <Bot className="w-3.5 h-3.5 md:w-4 md:h-4" style={{ color: "var(--text-muted)" }} />
+            <span style={{ color: "var(--text-muted)" }}>{job.sessionTarget}</span>
           </div>
+          {job.model && (
+            <div className="flex items-center gap-1 text-xs md:text-sm">
+              <span
+                className="text-[10px] md:text-xs px-1.5 py-0.5 rounded"
+                style={{
+                  backgroundColor: "rgba(192,132,252,0.15)",
+                  color: "#C084FC",
+                  fontFamily: "monospace",
+                }}
+              >
+                {job.model}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Next Run */}
         {job.enabled && job.nextRun && (
           <div className="flex flex-wrap items-center gap-1 md:gap-2 text-xs md:text-sm mb-2 md:mb-4">
-            <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4" style={{ color: 'var(--type-cron)' }} />
-            <span style={{ color: 'var(--text-secondary)' }}>Next:</span>
-            <span style={{ color: 'var(--text-primary)' }}>{formatDate(job.nextRun)}</span>
-            <span style={{ color: 'var(--type-cron)' }}>({getRelativeTime(job.nextRun)})</span>
+            <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4" style={{ color: "var(--type-cron)" }} />
+            <span style={{ color: "var(--text-secondary)" }}>Next:</span>
+            <span style={{ color: "var(--text-primary)" }}>{formatDate(job.nextRun)}</span>
+            <span style={{ color: "var(--type-cron)" }}>({getRelativeTime(job.nextRun)})</span>
           </div>
         )}
 
@@ -264,11 +328,11 @@ export function CronJobCard({ job, onToggle, onDelete, onRun }: CronJobCardProps
           onClick={() => setExpanded(!expanded)}
           className="flex items-center gap-1 text-xs md:text-sm"
           style={{
-            color: 'var(--text-muted)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'color 0.2s'
+            color: "var(--text-muted)",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            transition: "color 0.2s",
           }}
         >
           {expanded ? (
@@ -286,39 +350,115 @@ export function CronJobCard({ job, onToggle, onDelete, onRun }: CronJobCardProps
 
         {/* Expanded: Details */}
         {expanded && (
-          <div className="mt-2 md:mt-3 pl-3 md:pl-4 flex flex-col gap-1 md:gap-2 text-xs md:text-sm" style={{ borderLeft: '2px solid var(--border)' }}>
+          <div
+            className="mt-2 md:mt-3 pl-3 md:pl-4 flex flex-col gap-1 md:gap-2 text-xs md:text-sm"
+            style={{ borderLeft: "2px solid var(--border)" }}
+          >
             <div>
-              <span style={{ color: 'var(--text-muted)' }}>ID: </span>
-              <code style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>{job.id}</code>
+              <span style={{ color: "var(--text-muted)" }}>ID: </span>
+              <code style={{ color: "var(--text-secondary)", fontSize: "0.7rem" }}>{job.id}</code>
             </div>
             <div>
-              <span style={{ color: 'var(--text-muted)' }}>Agent: </span>
-              <span style={{ color: 'var(--text-secondary)' }}>{agentEmoji} {job.agentId}</span>
+              <span style={{ color: "var(--text-muted)" }}>Agent: </span>
+              <span style={{ color: "var(--text-secondary)" }}>
+                {agentEmoji} {job.agentId}
+              </span>
             </div>
             {job.lastRun && (
               <div>
-                <span style={{ color: 'var(--text-muted)' }}>Last run: </span>
-                <span style={{ color: 'var(--text-secondary)' }}>{formatDate(job.lastRun)}</span>
+                <span style={{ color: "var(--text-muted)" }}>Last run: </span>
+                <span style={{ color: "var(--text-secondary)" }}>{formatDate(job.lastRun)}</span>
               </div>
             )}
             <div>
-              <span style={{ color: 'var(--text-muted)' }}>Timezone: </span>
-              <span style={{ color: 'var(--text-secondary)' }}>{job.timezone}</span>
+              <span style={{ color: "var(--text-muted)" }}>Timezone: </span>
+              <span style={{ color: "var(--text-secondary)" }}>{job.timezone}</span>
             </div>
+            {job.model && (
+              <div>
+                <span style={{ color: "var(--text-muted)" }}>Model: </span>
+                <span style={{ color: "#C084FC" }}>{job.model}</span>
+              </div>
+            )}
+            {job.thinking && (
+              <div>
+                <span style={{ color: "var(--text-muted)" }}>Thinking: </span>
+                <span style={{ color: "var(--text-secondary)" }}>{job.thinking}</span>
+              </div>
+            )}
+            {job.deliveryMode && (
+              <div>
+                <span style={{ color: "var(--text-muted)" }}>Delivery: </span>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  {job.deliveryMode}
+                  {job.deliveryChannel ? ` → ${job.deliveryChannel}` : ""}
+                  {job.deliveryTo ? ` (${job.deliveryTo})` : ""}
+                </span>
+              </div>
+            )}
+            {job.lightContext && (
+              <div>
+                <span style={{ color: "var(--text-muted)" }}>Light context: </span>
+                <span style={{ color: "var(--success)" }}>✓</span>
+              </div>
+            )}
+            {job.tools && (
+              <div>
+                <span style={{ color: "var(--text-muted)" }}>Tools: </span>
+                <code style={{ color: "var(--text-secondary)", fontSize: "0.7rem" }}>{job.tools}</code>
+              </div>
+            )}
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-1 md:gap-2 mt-3 md:mt-4 pt-2 md:pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+        <div
+          className="flex items-center gap-1 md:gap-2 mt-3 md:mt-4 pt-2 md:pt-4"
+          style={{ borderTop: "1px solid var(--border)" }}
+        >
+          <button
+            onClick={() => onEdit(job)}
+            className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm rounded-lg"
+            title="Edit job"
+            style={{
+              color: "var(--text-secondary)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+          >
+            <Pencil className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            <span className="hidden sm:inline">Edit</span>
+          </button>
+
+          {onDuplicate && (
+            <button
+              onClick={() => onDuplicate(job)}
+              className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm rounded-lg"
+              title="Duplicate job"
+              style={{
+                color: "var(--text-secondary)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+            >
+              <Copy className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Duplicate</span>
+            </button>
+          )}
+
           <button
             onClick={() => onDelete(job.id)}
             className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm rounded-lg"
             style={{
-              color: 'var(--text-secondary)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
+              color: "var(--text-secondary)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              transition: "all 0.2s",
             }}
           >
             <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -330,11 +470,13 @@ export function CronJobCard({ job, onToggle, onDelete, onRun }: CronJobCardProps
             onClick={handleToggleHistory}
             className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm rounded-lg"
             style={{
-              color: showHistory ? 'var(--info)' : 'var(--text-muted)',
-              background: showHistory ? 'color-mix(in srgb, var(--info) 10%, transparent)' : 'none',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
+              color: showHistory ? "var(--info)" : "var(--text-muted)",
+              background: showHistory
+                ? "color-mix(in srgb, var(--info) 10%, transparent)"
+                : "none",
+              border: "none",
+              cursor: "pointer",
+              transition: "all 0.2s",
             }}
             title="Run history"
           >
@@ -352,20 +494,22 @@ export function CronJobCard({ job, onToggle, onDelete, onRun }: CronJobCardProps
               title="Trigger this job now"
               className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm rounded-lg"
               style={{
-                backgroundColor: runResult === "success"
-                  ? 'color-mix(in srgb, var(--success) 15%, transparent)'
-                  : runResult === "error"
-                  ? 'color-mix(in srgb, var(--error) 15%, transparent)'
-                  : 'color-mix(in srgb, var(--accent) 15%, transparent)',
-                color: runResult === "success"
-                  ? 'var(--success)'
-                  : runResult === "error"
-                  ? 'var(--error)'
-                  : 'var(--accent)',
-                border: `1px solid ${runResult === "success" ? 'color-mix(in srgb, var(--success) 30%, transparent)' : runResult === "error" ? 'color-mix(in srgb, var(--error) 30%, transparent)' : 'color-mix(in srgb, var(--accent) 30%, transparent)'}`,
-                cursor: isRunning ? 'not-allowed' : 'pointer',
+                backgroundColor:
+                  runResult === "success"
+                    ? "color-mix(in srgb, var(--success) 15%, transparent)"
+                    : runResult === "error"
+                      ? "color-mix(in srgb, var(--error) 15%, transparent)"
+                      : "color-mix(in srgb, var(--accent) 15%, transparent)",
+                color:
+                  runResult === "success"
+                    ? "var(--success)"
+                    : runResult === "error"
+                      ? "var(--error)"
+                      : "var(--accent)",
+                border: `1px solid ${runResult === "success" ? "color-mix(in srgb, var(--success) 30%, transparent)" : runResult === "error" ? "color-mix(in srgb, var(--error) 30%, transparent)" : "color-mix(in srgb, var(--accent) 30%, transparent)"}`,
+                cursor: isRunning ? "not-allowed" : "pointer",
                 opacity: isRunning ? 0.7 : 1,
-                transition: 'all 0.2s',
+                transition: "all 0.2s",
                 fontWeight: 600,
               }}
             >
@@ -379,7 +523,13 @@ export function CronJobCard({ job, onToggle, onDelete, onRun }: CronJobCardProps
                 <Zap className="w-3.5 h-3.5 md:w-4 md:h-4" />
               )}
               <span className="hidden sm:inline">
-                {isRunning ? "Running…" : runResult === "success" ? "Triggered!" : runResult === "error" ? "Failed" : "Run Now"}
+                {isRunning
+                  ? "Running…"
+                  : runResult === "success"
+                    ? "Triggered!"
+                    : runResult === "error"
+                      ? "Failed"
+                      : "Run Now"}
               </span>
             </button>
           )}
@@ -389,23 +539,23 @@ export function CronJobCard({ job, onToggle, onDelete, onRun }: CronJobCardProps
         {showHistory && (
           <div
             style={{
-              marginTop: '0.75rem',
-              backgroundColor: 'var(--card-elevated)',
-              borderRadius: '0.5rem',
-              border: '1px solid var(--border)',
-              overflow: 'hidden'
+              marginTop: "0.75rem",
+              backgroundColor: "var(--card-elevated)",
+              borderRadius: "0.5rem",
+              border: "1px solid var(--border)",
+              overflow: "hidden",
             }}
           >
             <div
               style={{
-                padding: '0.5rem 0.75rem',
-                borderBottom: '1px solid var(--border)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                fontSize: '0.75rem',
+                padding: "0.5rem 0.75rem",
+                borderBottom: "1px solid var(--border)",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                fontSize: "0.75rem",
                 fontWeight: 600,
-                color: 'var(--text-secondary)'
+                color: "var(--text-secondary)",
               }}
             >
               <History className="w-3.5 h-3.5" />
@@ -414,7 +564,14 @@ export function CronJobCard({ job, onToggle, onDelete, onRun }: CronJobCardProps
             </div>
 
             {!loadingHistory && runHistory.length === 0 && (
-              <div style={{ padding: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+              <div
+                style={{
+                  padding: "0.75rem",
+                  fontSize: "0.75rem",
+                  color: "var(--text-muted)",
+                  textAlign: "center",
+                }}
+              >
                 No run history available
               </div>
             )}
@@ -423,35 +580,45 @@ export function CronJobCard({ job, onToggle, onDelete, onRun }: CronJobCardProps
               <div
                 key={run.id || idx}
                 style={{
-                  padding: '0.5rem 0.75rem',
-                  borderBottom: idx < Math.min(runHistory.length, 5) - 1 ? '1px solid var(--border)' : 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  fontSize: '0.75rem',
+                  padding: "0.5rem 0.75rem",
+                  borderBottom:
+                    idx < Math.min(runHistory.length, 5) - 1
+                      ? "1px solid var(--border)"
+                      : "none",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  fontSize: "0.75rem",
                 }}
               >
                 {run.status === "success" ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--success)' }} />
+                  <CheckCircle2
+                    className="w-3.5 h-3.5 flex-shrink-0"
+                    style={{ color: "var(--success)" }}
+                  />
                 ) : run.status === "error" ? (
-                  <XCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--error)' }} />
+                  <XCircle
+                    className="w-3.5 h-3.5 flex-shrink-0"
+                    style={{ color: "var(--error)" }}
+                  />
                 ) : (
-                  <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--warning)' }} />
+                  <Clock
+                    className="w-3.5 h-3.5 flex-shrink-0"
+                    style={{ color: "var(--warning)" }}
+                  />
                 )}
-                <span style={{ color: 'var(--text-secondary)', flex: 1 }}>
+                <span style={{ color: "var(--text-secondary)", flex: 1 }}>
                   {formatHistoryDate(run.startedAt)}
                 </span>
-                <span style={{ color: 'var(--text-muted)' }}>
-                  {formatDuration(run.durationMs)}
-                </span>
+                <span style={{ color: "var(--text-muted)" }}>{formatDuration(run.durationMs)}</span>
                 {run.error && (
                   <span
                     style={{
-                      color: 'var(--error)',
-                      maxWidth: '100px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
+                      color: "var(--error)",
+                      maxWidth: "100px",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
                     }}
                     title={run.error}
                   >

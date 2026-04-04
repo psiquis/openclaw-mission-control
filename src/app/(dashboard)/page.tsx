@@ -74,10 +74,10 @@ export default function DashboardPage() {
             letterSpacing: '-1.5px'
           }}
         >
-          🦞 Mission Control
+          Mission Control
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-          Overview of Tenacitas agent activity
+          Overview of your OpenClaw agent fleet
         </p>
       </div>
 

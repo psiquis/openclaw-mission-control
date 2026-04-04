@@ -1,590 +1,232 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import {
-  Search,
-  RefreshCw,
-  Puzzle,
-  Package,
-  FolderOpen,
-  ExternalLink,
-  FileText,
-  X,
-} from "lucide-react";
-import { SectionHeader, MetricCard } from "@/components/TenacitOS";
+import { useState, useEffect, useCallback } from 'react';
+import { RefreshCw, Search, Package, ShieldAlert, Zap, Play, LayoutTemplate } from 'lucide-react';
+import SkillCard from '@/components/SkillCard';
+import SkillDetailModal from '@/components/SkillDetailModal';
 
-interface Skill {
+interface SkillData {
   id: string;
   name: string;
-  description: string;
-  location: string;
-  source: "workspace" | "system";
-  homepage?: string;
-  emoji?: string;
-  fileCount: number;
-  fullContent: string;
-  files: string[];
-  agents: string[];
+  description: string | null;
+  source: string;
+  category: string;
+  risk_level: string;
+  has_exec: number;
+  enabled: number;
+  file_count: number;
+  invoke_count: number;
+  error_count: number;
+  updated_at: string;
 }
 
-interface SkillsData {
-  skills: Skill[];
+interface Stats {
+  total: number;
+  enabled: number;
+  withExec: number;
+  totalInvocations: number;
+  weekInvocations: number;
+  errors: number;
+  byCategory: { category: string; count: number }[];
+  byRisk: { risk_level: string; count: number }[];
 }
 
 export default function SkillsPage() {
-  const [data, setData] = useState<SkillsData | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterSource, setFilterSource] = useState<"all" | "workspace" | "system">("all");
-  const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
+  const [skills, setSkills] = useState<SkillData[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [scanning, setScanning] = useState(false);
+  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterRisk, setFilterRisk] = useState<string>('all');
 
-  useEffect(() => {
-    fetch("/api/skills")
-      .then((res) => res.json())
-      .then(setData)
-      .catch(() => setData({ skills: [] }));
+  const fetchSkills = useCallback(async () => {
+    try {
+      const res = await fetch('/api/skills');
+      if (res.ok) {
+        const data = await res.json();
+        setSkills(data.skills || []);
+        setStats(data.stats || null);
+      }
+    } catch (err) {
+      console.error('Failed to fetch skills:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  if (!data) {
-    return (
-      <div className="p-6">
-        <div className="flex items-center justify-center py-24">
-          <RefreshCw className="w-8 h-8 animate-spin" style={{ color: "var(--accent)" }} />
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => { fetchSkills(); }, [fetchSkills]);
 
-  const { skills } = data;
+  const handleScan = async () => {
+    setScanning(true);
+    try {
+      const res = await fetch('/api/skills/scan', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setSkills(data.skills || []);
+        setStats(data.stats || null);
+      }
+    } catch (err) {
+      console.error('Failed to scan:', err);
+    } finally {
+      setScanning(false);
+    }
+  };
 
-  // Filter skills
-  let filteredSkills = skills;
+  const categories = Array.from(new Set(skills.map(s => s.category))).sort();
 
-  if (filterSource !== "all") {
-    filteredSkills = filteredSkills.filter((s) => s.source === filterSource);
-  }
+  const filtered = skills.filter(s => {
+    if (searchQuery && !s.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !(s.description || '').toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (filterCategory !== 'all' && s.category !== filterCategory) return false;
+    if (filterRisk !== 'all' && s.risk_level !== filterRisk) return false;
+    return true;
+  });
 
-  if (searchQuery) {
-    const query = searchQuery.toLowerCase();
-    filteredSkills = filteredSkills.filter(
-      (skill) =>
-        skill.name.toLowerCase().includes(query) ||
-        skill.description.toLowerCase().includes(query) ||
-        skill.id.toLowerCase().includes(query)
-    );
-  }
-
-  // Group by source
-  const workspaceSkills = filteredSkills.filter((s) => s.source === "workspace");
-  const systemSkills = filteredSkills.filter((s) => s.source === "system");
-
-  const workspaceCount = skills.filter((s) => s.source === "workspace").length;
-  const systemCount = skills.filter((s) => s.source === "system").length;
+  const highRiskCount = stats?.byRisk.find(r => r.risk_level === 'high')?.count || 0;
 
   return (
-    <div style={{ padding: "24px" }}>
+    <div className="p-4 md:p-8">
       {/* Header */}
-      <div style={{ marginBottom: "24px" }}>
-        <h1
-          style={{
-            fontFamily: "var(--font-heading)",
-            fontSize: "24px",
-            fontWeight: 700,
-            letterSpacing: "-1px",
-            color: "var(--text-primary)",
-            marginBottom: "4px",
-          }}
-        >
-          Skills Manager
-        </h1>
-        <p
-          style={{
-            fontFamily: "var(--font-body)",
-            fontSize: "13px",
-            color: "var(--text-secondary)",
-          }}
-        >
-          Skills disponibles en el sistema OpenClaw
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 md:mb-8">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
+            Skills
+          </h1>
+          <p className="text-sm md:text-base" style={{ color: 'var(--text-secondary)' }}>
+            Manage, monitor and configure agent skills
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <a
+            href="/skills/templates"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+          >
+            <LayoutTemplate className="w-4 h-4" />
+            Templates
+          </a>
+          <button
+            onClick={handleScan}
+            disabled={scanning}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+          >
+            <RefreshCw className={`w-4 h-4 ${scanning ? 'animate-spin' : ''}`} />
+            {scanning ? 'Scanning...' : 'Scan Skills'}
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "16px",
-          marginBottom: "24px",
-        }}
-      >
-        <MetricCard icon={Puzzle} value={skills.length} label="Total Skills" />
-        <MetricCard
-          icon={FolderOpen}
-          value={workspaceCount}
-          label="Workspace Skills"
-          changeColor="positive"
-        />
-        <MetricCard
-          icon={Package}
-          value={systemCount}
-          label="System Skills"
-          changeColor="secondary"
-        />
-      </div>
+      {stats && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-8">
+          <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{stats.total}</p>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Total Skills</p>
+              </div>
+              <Package className="w-6 h-6" style={{ color: 'var(--info)' }} />
+            </div>
+          </div>
+          <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{stats.withExec}</p>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>With exec</p>
+              </div>
+              <Zap className="w-6 h-6" style={{ color: 'var(--warning)' }} />
+            </div>
+          </div>
+          <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold" style={{ color: highRiskCount > 0 ? 'var(--error)' : 'var(--text-primary)' }}>{highRiskCount}</p>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>High Risk</p>
+              </div>
+              <ShieldAlert className="w-6 h-6" style={{ color: highRiskCount > 0 ? 'var(--error)' : 'var(--text-muted)' }} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
-      <div
-        style={{
-          display: "flex",
-          gap: "12px",
-          marginBottom: "24px",
-          flexWrap: "wrap",
-        }}
-      >
-        {/* Search */}
-        <div style={{ position: "relative", flex: 1, minWidth: "240px" }}>
-          <Search
-            style={{
-              position: "absolute",
-              left: "12px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              width: "16px",
-              height: "16px",
-              color: "var(--text-muted)",
-            }}
-          />
+      <div className="flex flex-wrap items-center gap-3 mb-4 md:mb-6">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           <input
             type="text"
-            placeholder="Buscar skills..."
+            placeholder="Search skills..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: "100%",
-              paddingLeft: "40px",
-              paddingRight: "16px",
-              paddingTop: "12px",
-              paddingBottom: "12px",
-              borderRadius: "6px",
-              backgroundColor: "var(--surface-elevated)",
-              border: "1px solid var(--border)",
-              color: "var(--text-primary)",
-              fontFamily: "var(--font-body)",
-              fontSize: "12px",
-            }}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 rounded-lg text-sm"
+            style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
           />
         </div>
-
-        {/* Source Filter */}
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button
-            onClick={() => setFilterSource("all")}
-            style={{
-              padding: "12px 20px",
-              borderRadius: "6px",
-              backgroundColor: filterSource === "all" ? "var(--accent-soft)" : "var(--surface)",
-              color: filterSource === "all" ? "var(--accent)" : "var(--text-secondary)",
-              border: "1px solid var(--border)",
-              fontFamily: "var(--font-body)",
-              fontSize: "12px",
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "all 150ms ease",
-            }}
-          >
-            Todas ({skills.length})
-          </button>
-          <button
-            onClick={() => setFilterSource("workspace")}
-            style={{
-              padding: "12px 20px",
-              borderRadius: "6px",
-              backgroundColor: filterSource === "workspace" ? "var(--accent-soft)" : "var(--surface)",
-              color: filterSource === "workspace" ? "var(--accent)" : "var(--text-secondary)",
-              border: "1px solid var(--border)",
-              fontFamily: "var(--font-body)",
-              fontSize: "12px",
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "all 150ms ease",
-            }}
-          >
-            Workspace ({workspaceCount})
-          </button>
-          <button
-            onClick={() => setFilterSource("system")}
-            style={{
-              padding: "12px 20px",
-              borderRadius: "6px",
-              backgroundColor: filterSource === "system" ? "var(--accent-soft)" : "var(--surface)",
-              color: filterSource === "system" ? "var(--accent)" : "var(--text-secondary)",
-              border: "1px solid var(--border)",
-              fontFamily: "var(--font-body)",
-              fontSize: "12px",
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "all 150ms ease",
-            }}
-          >
-            System ({systemCount})
-          </button>
-        </div>
+        <select
+          value={filterCategory}
+          onChange={e => setFilterCategory(e.target.value)}
+          className="px-3 py-2 rounded-lg text-sm"
+          style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+        >
+          <option value="all">All categories</option>
+          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select
+          value={filterRisk}
+          onChange={e => setFilterRisk(e.target.value)}
+          className="px-3 py-2 rounded-lg text-sm"
+          style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+        >
+          <option value="all">All risk levels</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+        <span className="text-xs ml-auto" style={{ color: 'var(--text-muted)' }}>
+          {filtered.length} of {skills.length} skills
+        </span>
       </div>
 
-      {/* Skills List */}
-      {filteredSkills.length === 0 ? (
-        <div
-          style={{
-            backgroundColor: "var(--surface)",
-            borderRadius: "12px",
-            padding: "48px",
-            textAlign: "center",
-          }}
-        >
-          <Puzzle
-            style={{
-              width: "48px",
-              height: "48px",
-              color: "var(--text-muted)",
-              margin: "0 auto 16px",
-            }}
-          />
-          <p style={{ color: "var(--text-secondary)" }}>No se encontraron skills</p>
+      {/* Skills Grid */}
+      {loading ? (
+        <div className="flex items-center justify-center h-40" style={{ color: 'var(--text-muted)' }}>
+          <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Loading skills...
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <Package className="w-10 h-10 mb-3" style={{ color: 'var(--text-muted)' }} />
+          <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
+            {skills.length === 0 ? 'No skills found' : 'No skills match filters'}
+          </p>
+          {skills.length === 0 && (
+            <button onClick={handleScan} className="text-sm font-medium" style={{ color: 'var(--accent)' }}>
+              Scan for skills
+            </button>
+          )}
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-          {/* Workspace Skills */}
-          {workspaceSkills.length > 0 && (filterSource === "all" || filterSource === "workspace") && (
-            <div>
-              <SectionHeader label="WORKSPACE SKILLS" />
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-                  gap: "12px",
-                  marginTop: "16px",
-                }}
-              >
-                {workspaceSkills.map((skill) => (
-                  <SkillCard key={skill.id} skill={skill} onClick={() => setSelectedSkill(skill)} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* System Skills */}
-          {systemSkills.length > 0 && (filterSource === "all" || filterSource === "system") && (
-            <div>
-              <SectionHeader label="SYSTEM SKILLS" />
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-                  gap: "12px",
-                  marginTop: "16px",
-                }}
-              >
-                {systemSkills.map((skill) => (
-                  <SkillCard key={skill.id} skill={skill} onClick={() => setSelectedSkill(skill)} />
-                ))}
-              </div>
-            </div>
-          )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
+          {filtered.map(skill => (
+            <SkillCard
+              key={skill.id}
+              skill={skill}
+              onClick={() => setSelectedSkillId(skill.id)}
+            />
+          ))}
         </div>
       )}
 
       {/* Detail Modal */}
-      {selectedSkill && <SkillDetailModal skill={selectedSkill} onClose={() => setSelectedSkill(null)} />}
-    </div>
-  );
-}
-
-// Skill Card Component
-function SkillCard({ skill, onClick }: { skill: Skill; onClick: () => void }) {
-  return (
-    <div
-      style={{
-        backgroundColor: "var(--surface)",
-        borderRadius: "8px",
-        padding: "16px",
-        border: "1px solid var(--border)",
-        cursor: "pointer",
-        transition: "all 150ms ease",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = "var(--surface-hover)";
-        e.currentTarget.style.borderColor = "var(--border-strong)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = "var(--surface)";
-        e.currentTarget.style.borderColor = "var(--border)";
-      }}
-      onClick={onClick}
-    >
-      {/* Skill Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: "12px",
-          marginBottom: "12px",
-        }}
-      >
-        {skill.emoji && (
-          <span style={{ fontSize: "24px", flexShrink: 0 }}>{skill.emoji}</span>
-        )}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h3
-            style={{
-              fontFamily: "var(--font-heading)",
-              fontSize: "14px",
-              fontWeight: 600,
-              color: "var(--text-primary)",
-              marginBottom: "4px",
-            }}
-          >
-            {skill.name}
-          </h3>
-          <p
-            style={{
-              fontFamily: "var(--font-body)",
-              fontSize: "12px",
-              color: "var(--text-secondary)",
-              lineHeight: "1.5",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}
-          >
-            {skill.description}
-          </p>
-        </div>
-      </div>
-
-      {/* Skill Footer */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          paddingTop: "12px",
-          borderTop: "1px solid var(--border)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-          <div
-            style={{
-              backgroundColor:
-                skill.source === "workspace" ? "var(--accent-soft)" : "var(--surface-elevated)",
-              color: skill.source === "workspace" ? "var(--accent)" : "var(--text-muted)",
-              padding: "3px 8px",
-              borderRadius: "4px",
-              fontFamily: "var(--font-body)",
-              fontSize: "9px",
-              fontWeight: 700,
-              letterSpacing: "1px",
-              textTransform: "uppercase",
-            }}
-          >
-            {skill.source}
-          </div>
-          {skill.agents && skill.agents.length > 0 && skill.agents.map((agent) => (
-            <div
-              key={agent}
-              style={{
-                backgroundColor: "var(--surface-elevated)",
-                color: "var(--text-secondary)",
-                padding: "3px 7px",
-                borderRadius: "4px",
-                fontFamily: "var(--font-mono)",
-                fontSize: "9px",
-                fontWeight: 600,
-                border: "1px solid var(--border)",
-              }}
-            >
-              {agent}
-            </div>
-          ))}
-          <span
-            style={{
-              fontFamily: "var(--font-body)",
-              fontSize: "10px",
-              color: "var(--text-muted)",
-            }}
-          >
-            {skill.fileCount} files
-          </span>
-        </div>
-        {skill.homepage && (
-          <ExternalLink style={{ width: "14px", height: "14px", color: "var(--text-muted)" }} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Skill Detail Modal Component
-function SkillDetailModal({ skill, onClose }: { skill: Skill; onClose: () => void }) {
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "24px",
-        zIndex: 100,
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          backgroundColor: "var(--surface)",
-          borderRadius: "12px",
-          maxWidth: "800px",
-          width: "100%",
-          maxHeight: "90vh",
-          overflow: "auto",
-          border: "1px solid var(--border)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Modal Header */}
-        <div
-          style={{
-            padding: "24px",
-            borderBottom: "1px solid var(--border)",
-            position: "relative",
-          }}
-        >
-          <button
-            onClick={onClose}
-            style={{
-              position: "absolute",
-              top: "24px",
-              right: "24px",
-              padding: "8px",
-              borderRadius: "6px",
-              backgroundColor: "transparent",
-              border: "none",
-              cursor: "pointer",
-              color: "var(--text-muted)",
-            }}
-          >
-            <X style={{ width: "20px", height: "20px" }} />
-          </button>
-
-          <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", paddingRight: "40px" }}>
-            {skill.emoji && <span style={{ fontSize: "48px" }}>{skill.emoji}</span>}
-            <div style={{ flex: 1 }}>
-              <h2
-                style={{
-                  fontFamily: "var(--font-heading)",
-                  fontSize: "24px",
-                  fontWeight: 700,
-                  color: "var(--text-primary)",
-                  marginBottom: "8px",
-                }}
-              >
-                {skill.name}
-              </h2>
-              <p
-                style={{
-                  fontFamily: "var(--font-body)",
-                  fontSize: "14px",
-                  color: "var(--text-secondary)",
-                  marginBottom: "12px",
-                }}
-              >
-                {skill.description}
-              </p>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                <div className="badge-positive">{skill.source}</div>
-                <div className="badge-info">{skill.fileCount} archivos</div>
-                {skill.agents && skill.agents.length > 0 && skill.agents.map((agent) => (
-                  <div
-                    key={agent}
-                    style={{
-                      backgroundColor: "var(--surface-elevated)",
-                      color: "var(--text-secondary)",
-                      padding: "3px 10px",
-                      borderRadius: "4px",
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      border: "1px solid var(--border)",
-                    }}
-                  >
-                    @{agent}
-                  </div>
-                ))}
-                {skill.homepage && (
-                  <a
-                    href={skill.homepage}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      color: "var(--accent)",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      textDecoration: "none",
-                    }}
-                  >
-                    Homepage <ExternalLink style={{ width: "12px", height: "12px" }} />
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Modal Body */}
-        <div style={{ padding: "24px" }}>
-          <h3
-            style={{
-              fontFamily: "var(--font-heading)",
-              fontSize: "14px",
-              fontWeight: 600,
-              color: "var(--text-primary)",
-              marginBottom: "12px",
-            }}
-          >
-            Archivos ({skill.files.length})
-          </h3>
-          <div
-            style={{
-              backgroundColor: "var(--bg)",
-              borderRadius: "8px",
-              padding: "16px",
-              maxHeight: "400px",
-              overflow: "auto",
-            }}
-          >
-            {skill.files.map((file) => (
-              <div
-                key={file}
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "12px",
-                  color: "var(--text-secondary)",
-                  padding: "4px 0",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-              >
-                <FileText style={{ width: "14px", height: "14px", color: "var(--text-muted)", flexShrink: 0 }} />
-                {file}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      {selectedSkillId && (
+        <SkillDetailModal
+          skillId={selectedSkillId}
+          onClose={() => setSelectedSkillId(null)}
+          onUpdate={fetchSkills}
+        />
+      )}
     </div>
   );
 }

@@ -71,7 +71,7 @@ function parseSessionKey(key: string): {
   }
 
   if (parts[2] === 'main') {
-    return { type: 'main', typeLabel: 'Main Session', typeEmoji: '🦞', isRunEntry: false };
+    return { type: 'main', typeLabel: 'Main Session', typeEmoji: '', isRunEntry: false };
   }
 
   if (parts[2] === 'cron') {

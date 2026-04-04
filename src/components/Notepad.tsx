@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { StickyNote, Save, Trash2 } from "lucide-react";
 
-const STORAGE_KEY = "tenacitas-notepad";
+const STORAGE_KEY = "mc-notepad";
 
 export function Notepad() {
   const [text, setText] = useState("");
