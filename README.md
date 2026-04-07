@@ -1,85 +1,103 @@
 <div align="center">
 
+<img src="docs/logo-dark.svg" alt="Mission Control" width="80" />
+
 # Mission Control
 
-### The definitive open-source dashboard for managing OpenClaw AI agent fleets
+### Command center for OpenClaw AI agent fleets
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-000?logo=next.js)](https://nextjs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)](https://www.typescriptlang.org)
-[![SQLite](https://img.shields.io/badge/SQLite-WAL-003B57?logo=sqlite)](https://sqlite.org)
-[![License](https://img.shields.io/badge/License-MIT-6366F1)](LICENSE)
-[![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.4+-000?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiLz48L3N2Zz4=)](https://github.com/openclaw/openclaw)
+[![Next.js](https://img.shields.io/badge/Next.js-15-000?style=flat-square&logo=next.js)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org)
+[![SQLite](https://img.shields.io/badge/SQLite-WAL-003B57?style=flat-square&logo=sqlite)](https://sqlite.org)
+[![License](https://img.shields.io/badge/License-MIT-6366F1?style=flat-square)](LICENSE)
+[![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.4+-FF3B30?style=flat-square)](https://github.com/openclaw/openclaw)
 
-**Monitor agents · Manage skills · Schedule automation · Track everything**
+**Real-time fleet monitoring · Smart cron scheduling · Skill management · Full observability**
+
+[Quick Start](#-quick-start) · [Features](#-features) · [Screenshots](#-screenshots) · [Architecture](#-architecture) · [Contributing](#-contributing)
 
 </div>
 
 ---
 
-## Overview
+## ✨ What's New
 
-Mission Control is a self-hosted Next.js dashboard designed to manage [OpenClaw](https://github.com/openclaw/openclaw) AI agent deployments. It provides real-time visibility into your agent fleet, skill management, cron scheduling, session history, system monitoring, and more — all from a single, clean interface.
+> **v0.2.2** — April 2026
 
-Built for teams and solo operators running multi-agent OpenClaw setups on Linux servers, Raspberry Pis, or VPS instances.
+- 🔧 **Smart Cron Presets** — One-click task profiles: _Script directo_, _Tarea de agente_, _Respuesta simple_, or fully custom
+- 💡 **Inline Tooltips** — Contextual `ℹ️` hints on every cron field so you never misconfigure a job
+- 📢 **Simplified Delivery** — Single checkbox to route results to Telegram, auto-configured per agent
+- ⚡ **Run Now Fix** — Instant manual cron execution from the dashboard
+- 📊 **Weekly Timeline** — Visual cron schedule across the week
+- 🗂️ **Cron Templates** — 8 pre-built automation templates ready to deploy
+- 🎯 **Cron Categories** — Organize jobs by type (backup, monitoring, content, etc.)
 
 ---
 
-## Screenshots
+## 📸 Screenshots
 
 <table>
 <tr>
 <td width="50%">
 
-**Dashboard**
+**Dashboard — Fleet Overview**
 ![Dashboard](docs/screenshots/dashboard.png)
+*Real-time agent status, activity feed, weather, system metrics, and quick links*
 
 </td>
 <td width="50%">
 
-**Agents**
+**Agent Fleet**
 ![Agents](docs/screenshots/agents.png)
+*Multi-agent overview with models, status, and configuration*
 
 </td>
 </tr>
 <tr>
 <td>
 
-**Skills Management**
-![Skills](docs/screenshots/skills.png)
-
-</td>
-<td>
-
-**Skill Templates**
-![Skill Templates](docs/screenshots/skill-templates.png)
-
-</td>
-</tr>
-<tr>
-<td>
-
-**Cron Jobs**
+**Cron Scheduler**
 ![Cron](docs/screenshots/cron.png)
+*Full cron management with smart presets, tooltips, and visual timeline*
 
 </td>
 <td>
 
 **Cron Templates**
 ![Cron Templates](docs/screenshots/cron-templates.png)
+*Pre-built automation templates — deploy with one click*
 
 </td>
 </tr>
 <tr>
 <td>
 
-**Sessions**
+**Skill Registry**
+![Skills](docs/screenshots/skills.png)
+*SQLite-backed inventory with risk assessment and category detection*
+
+</td>
+<td>
+
+**Skill Templates**
+![Skill Templates](docs/screenshots/skill-templates.png)
+*Guided wizard for creating standardized skills*
+
+</td>
+</tr>
+<tr>
+<td>
+
+**Session History**
 ![Sessions](docs/screenshots/sessions.png)
+*Browse all agent sessions with token tracking and filters*
 
 </td>
 <td>
 
 **File Browser**
 ![Files](docs/screenshots/files.png)
+*Navigate and edit workspace files with Monaco editor*
 
 </td>
 </tr>
@@ -88,11 +106,14 @@ Built for teams and solo operators running multi-agent OpenClaw setups on Linux 
 
 **Memory Search**
 ![Memory](docs/screenshots/memory.png)
+*Semantic search across agent memory databases*
 
 </td>
 <td>
 
-&nbsp;
+**Activity Feed**
+![Activity](docs/screenshots/cron.png)
+*Real-time activity stream with agent filtering and status tracking*
 
 </td>
 </tr>
@@ -100,57 +121,62 @@ Built for teams and solo operators running multi-agent OpenClaw setups on Linux 
 
 ---
 
-## Features
+## 🚀 Features
 
-### Agent Fleet Management
-- Multi-agent overview with status, models, and configuration
+### 🤖 Agent Fleet Management
+- Live status dashboard with model info and connection state
 - Per-agent workspace browsing and memory search
 - Agent organigram visualization
+- Real-time activity feed with type filtering
 
-### Skill Operating System
-- **Skill Registry** — SQLite-backed inventory with automatic risk assessment, category detection, and file scanning
-- **Skill Detail View** — SKILL.md preview, file tree, agent assignment, invocation history, and configuration
-- **Skill Templates** — 7 built-in templates (basic, exec, stateful, automation, API, workflow, monitoring) with guided wizard for creating standardized skills
-- **Risk Assessment** — Automatic detection of `sudo`, `rm -rf`, elevated commands, and secrets references
+### ⏰ Smart Cron Scheduling
+- **Smart Presets** — Choose a task profile and let the system configure thinking, context, tools, and timeout:
 
-### Cron Scheduling
-- Full CRUD for OpenClaw cron jobs via the gateway CLI
-- Weekly timeline visualization
-- **Cron Templates** — 8 pre-configured job templates (backups, health checks, cleanups, reporting) ready to deploy with one click
-- Create, edit, and delete custom cron templates
-- Human-readable schedule descriptions
+  | Preset | Thinking | Context | Tools | Timeout | Best for |
+  |--------|----------|---------|-------|---------|----------|
+  | 🔧 Script directo | Off | Light | exec, read, write | 180s | Bash/Python scripts |
+  | 🤖 Tarea de agente | Default | Full | All | 600s | Complex reasoning tasks |
+  | 📝 Respuesta simple | Off | Light | None | 120s | Text-only responses |
+  | ⚙️ Personalizado | Custom | Custom | Custom | Custom | Full manual control |
 
-### System Monitoring
-- Real-time CPU, RAM, and disk usage
-- Service status (systemd, Ollama, proxies)
-- Hardware and software inventory
+- **Inline Tooltips** — Every field has an `ℹ️` icon explaining what it does and recommended values
+- **One-click Delivery** — Toggle to route results via Telegram, auto-configured per agent
+- **Visual Builder** — Frequency modes (minutely, hourly, daily, weekly, monthly) with cron preview
+- **Weekly Timeline** — See all jobs plotted across the week
+- **Templates** — 8 pre-built templates (backups, health checks, cleanups, reporting)
+- **Run Now** — Instantly trigger any job from the dashboard
+- **Category System** — Organize jobs by type
 
-### Session History
-- Browse all agent sessions (main, cron, sub-agents, chats)
-- Token usage tracking per session
-- Filter by agent, type, and date
+### 🧩 Skill Operating System
+- **Skill Registry** — SQLite-backed with automatic risk assessment and category detection
+- **Skill Detail View** — SKILL.md preview, file tree, agent assignment, invocation history
+- **Skill Templates** — 7 built-in templates with guided creation wizard
+- **Risk Assessment** — Detects `sudo`, `rm -rf`, elevated commands, and secrets
 
-### Additional Features
-- **File Browser** — Navigate and edit workspace files with Monaco editor
-- **Memory Search** — Semantic search across agent memory databases
-- **Activity Feed** — Real-time activity stream with type filtering
+### 📊 Observability
+- Real-time CPU, RAM, disk, and service monitoring
+- Session history with token usage tracking
+- Activity heatmaps and usage analytics
+- Live log streaming
+- Cost tracking per model/provider
+
+### 🛠️ Power Tools
+- **File Browser** — Navigate and edit files with Monaco editor
+- **Memory Search** — Semantic search across all agent memory DBs
+- **Web Terminal** — Browser-based terminal access
+- **Global Search** — Search across files, memory, sessions, and skills
 - **Git Integration** — Repository status and recent commits
-- **Analytics** — Usage patterns and activity heatmaps
-- **Live Logs** — Real-time log streaming
-- **Terminal** — Web-based terminal access
-- **Search** — Global search across files, memory, and sessions
-- **Quick Actions** — One-click system operations
-- **PWA Support** — Installable as a Progressive Web App
+- **PWA** — Install as a Progressive Web App
 
 ---
 
-## Quick Start
+## 📦 Quick Start
 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org) 22+
 - [OpenClaw](https://github.com/openclaw/openclaw) installed and running
-- Linux/macOS (tested on Ubuntu 24.04)
+- Linux/macOS (tested on Ubuntu 24.04, Raspberry Pi OS)
 
 ### Install
 
@@ -166,8 +192,6 @@ npm install
 cp .env.example .env.local
 ```
 
-Edit `.env.local`:
-
 ```env
 # Required
 ADMIN_PASSWORD=your-secure-password
@@ -177,7 +201,6 @@ OPENCLAW_DIR=/home/your-user/.openclaw
 # Optional — Branding
 NEXT_PUBLIC_AGENT_NAME=Mission Control
 NEXT_PUBLIC_COMPANY_NAME=Your Company
-NEXT_PUBLIC_APP_TITLE=Mission Control
 ```
 
 ### Run
@@ -187,70 +210,62 @@ NEXT_PUBLIC_APP_TITLE=Mission Control
 npm run dev
 
 # Production
-npm run build
-npm run start
+npm run build && npm start
 ```
 
-Open `http://localhost:3000` and log in with your `ADMIN_PASSWORD`.
+Open `http://localhost:3000`
 
 ### Docker
 
 ```bash
 docker build -t mission-control .
-docker run -d \
-  -p 3000:3000 \
-  -v /home/your-user/.openclaw:/root/.openclaw:ro \
+docker run -d -p 3000:3000 \
+  -v ~/.openclaw:/root/.openclaw:ro \
   -e ADMIN_PASSWORD=your-password \
   -e AUTH_SECRET=$(openssl rand -base64 32) \
   mission-control
 ```
 
+### PM2 (recommended for production)
+
+```bash
+npm run build
+pm2 start "npm start" --name mission-control
+pm2 save
+```
+
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 ```
 mission-control/
 ├── src/
 │   ├── app/                    # Next.js App Router
-│   │   ├── (dashboard)/        # All dashboard pages
-│   │   │   ├── skills/         # Skill management + templates
+│   │   ├── (dashboard)/        # Dashboard pages
 │   │   │   ├── cron/           # Cron jobs + templates
-│   │   │   ├── agents/         # Agent fleet overview
-│   │   │   ├── system/         # System monitoring
+│   │   │   ├── skills/         # Skill management
+│   │   │   ├── agents/         # Agent fleet
 │   │   │   ├── sessions/       # Session history
+│   │   │   ├── system/         # System monitoring
 │   │   │   ├── files/          # File browser
 │   │   │   ├── memory/         # Memory search
-│   │   │   └── ...             # Other pages
+│   │   │   ├── costs/          # Cost analytics
+│   │   │   └── ...
 │   │   ├── api/                # API routes
-│   │   │   ├── skills/         # Skill CRUD + scan + stats
-│   │   │   ├── templates/      # Skill template engine
-│   │   │   ├── cron/           # Cron CRUD + templates
-│   │   │   ├── agents/         # Agent status
-│   │   │   ├── system/         # System metrics
-│   │   │   └── ...             # Other APIs
-│   │   └── login/              # Authentication
+│   │   └── login/              # Auth
 │   ├── components/             # React components
-│   ├── lib/                    # Business logic
-│   │   ├── skills-db.ts        # Skill registry (SQLite)
-│   │   ├── skill-parser.ts     # SKILL.md frontmatter parser
-│   │   ├── template-engine.ts  # Skill generation from templates
-│   │   ├── cron-templates-db.ts # Cron template persistence
-│   │   └── ...
-│   └── config/                 # Branding configuration
+│   └── lib/                    # Business logic + DB
 ├── data/                       # SQLite databases (auto-created)
-│   ├── skills.db               # Skill registry + invocations
-│   ├── cron-templates.db       # Cron template storage
-│   └── activities.db           # Activity log
 ├── public/                     # Static assets
-└── docs/                       # Documentation + screenshots
+└── docs/                       # Documentation
 ```
 
 ### Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 15 (App Router) |
+| Framework | Next.js 15 (App Router, Turbopack) |
 | Language | TypeScript 5 |
 | Styling | Tailwind CSS 4 + CSS Variables |
 | Database | SQLite via better-sqlite3 (WAL mode) |
@@ -262,72 +277,75 @@ mission-control/
 ### Data Flow
 
 ```
-Browser ←→ Next.js API Routes ←→ OpenClaw CLI / SQLite / Filesystem
-                                       ↓
-                              OpenClaw Gateway (agents, cron, sessions)
+Browser  ←→  Next.js API Routes  ←→  OpenClaw CLI / SQLite / Filesystem
+                                            ↓
+                                   OpenClaw Gateway
+                                   (agents, cron, sessions, models)
 ```
 
-Mission Control reads from and writes to:
-- `~/.openclaw/openclaw.json` — Agent and skill configuration
-- `~/.openclaw/cron/jobs.json` — Cron job definitions (via `openclaw cron` CLI)
-- `~/.openclaw/agents/` — Agent session data
-- `~/.openclaw/workspace/` — Agent workspaces
-- `~/.openclaw/skills/` — Custom skills
-- `~/.openclaw/memory/` — Agent memory databases
-- `data/skills.db` — Local skill registry with metadata, risk assessment, invocations
-- `data/cron-templates.db` — Custom cron job templates
+Mission Control reads/writes:
+| Path | Purpose |
+|------|---------|
+| `~/.openclaw/openclaw.json` | Agent and model configuration |
+| `~/.openclaw/cron/jobs.json` | Cron job definitions |
+| `~/.openclaw/agents/` | Agent sessions and config |
+| `~/.openclaw/workspace/` | Agent workspaces |
+| `~/.openclaw/skills/` | Custom skills |
+| `~/.openclaw/memory/` | Agent memory DBs |
+| `data/*.db` | Local registry (skills, templates, activities) |
 
 ---
 
-## Customization
+## 🎨 Customization
 
 ### Branding
 
-All branding is configured via environment variables — no code changes needed:
+All branding via environment variables — zero code changes:
 
 ```env
 NEXT_PUBLIC_AGENT_NAME=My Dashboard
 NEXT_PUBLIC_COMPANY_NAME=My Company
 NEXT_PUBLIC_APP_TITLE=Control Center
-NEXT_PUBLIC_OWNER_USERNAME=admin
 ```
 
-### Design System
+### Theme
 
-The design system uses CSS custom properties defined in `src/app/globals.css`. Override any variable to customize:
+Override CSS variables in `src/app/globals.css`:
 
 ```css
 :root {
-  --accent: #6366F1;       /* Primary accent (indigo) */
+  --accent: #6366F1;       /* Primary accent */
   --bg: #09090B;           /* Background */
   --surface: #111113;      /* Card surfaces */
-  --border: #1F1F23;       /* Borders */
   --text-primary: #FAFAFA; /* Primary text */
 }
 ```
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
-Contributions are welcome. Please open an issue first to discuss what you'd like to change.
+Contributions welcome. Open an issue first to discuss changes.
 
-1. Fork the repo
-2. Create a feature branch (`git checkout -b feature/my-feature`)
-3. Commit your changes (`git commit -m 'Add my feature'`)
-4. Push to the branch (`git push origin feature/my-feature`)
-5. Open a Pull Request
+```bash
+git clone https://github.com/psiquis/openclaw-mission-control.git
+cd openclaw-mission-control
+npm install
+npm run dev    # http://localhost:3000
+```
 
 ---
 
-## License
+## 📄 License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](LICENSE).
 
 ---
 
 <div align="center">
 
 Built for [OpenClaw](https://github.com/openclaw/openclaw) · Made by [OpenCloud](https://github.com/psiquis)
+
+*Ship agents, not anxiety.*
 
 </div>
