@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid job ID" }, { status: 400 });
     }
 
-    const output = execSync(`openclaw cron run ${id} --force 2>&1`, {
-      timeout: 15000,
+    const output = execSync(`openclaw cron run ${id} 2>&1`, {
+      timeout: 120000,
       encoding: "utf-8",
     });
 

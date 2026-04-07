@@ -30,7 +30,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   try {
     const { id } = await params;
     const deleted = deleteCronTemplate(id);
-    if (!deleted) return NextResponse.json({ error: 'Cannot delete builtin template' }, { status: 400 });
+    if (!deleted) return NextResponse.json({ error: 'Template not found' }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to delete cron template:', error);

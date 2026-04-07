@@ -1,7 +1,51 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { X, ChevronDown, ChevronUp, Zap, Calendar, Terminal, Settings2, Blocks } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { X, ChevronDown, ChevronUp, Zap, Calendar, Terminal, Settings2, Blocks, Info } from "lucide-react";
+
+// ---- InfoTip Component ----
+function InfoTip({ text }: { text: string }) {
+  const [show, setShow] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+  return (
+    <span ref={ref} style={{ position: "relative", display: "inline-flex", alignItems: "center", marginLeft: "0.25rem", cursor: "help" }}
+      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+      <Info className="w-3.5 h-3.5" style={{ color: "var(--text-muted)", opacity: 0.6 }} />
+      {show && (
+        <span style={{
+          position: "absolute", bottom: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)",
+          padding: "0.5rem 0.75rem", borderRadius: "0.5rem", fontSize: "0.72rem", lineHeight: 1.4,
+          backgroundColor: "var(--card)", border: "1px solid var(--border)", color: "var(--text-secondary)",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.3)", whiteSpace: "normal", width: "220px", zIndex: 100,
+          pointerEvents: "none",
+        }}>{text}</span>
+      )}
+    </span>
+  );
+}
+
+// ---- Task Presets ----
+type TaskPreset = "script" | "agent" | "simple" | "custom";
+const TASK_PRESETS: Array<{ id: TaskPreset; emoji: string; label: string; desc: string }> = [
+  { id: "script", emoji: "\u{1F527}", label: "Script directo", desc: "Ejecuta un script bash/python. R\u00e1pido y ligero." },
+  { id: "agent", emoji: "\u{1F916}", label: "Tarea de agente", desc: "El agente piensa, razona y usa herramientas." },
+  { id: "simple", emoji: "\u{1F4DD}", label: "Respuesta simple", desc: "Solo texto, sin ejecutar nada." },
+  { id: "custom", emoji: "\u2699\uFE0F", label: "Personalizado", desc: "Configura manualmente todas las opciones." },
+];
+function applyPreset(preset: TaskPreset): { thinking: string; lightContext: boolean; tools: string; timeoutSeconds: number } {
+  switch (preset) {
+    case "script": return { thinking: "off", lightContext: true, tools: "exec,read,write", timeoutSeconds: 180 };
+    case "agent": return { thinking: "", lightContext: false, tools: "", timeoutSeconds: 600 };
+    case "simple": return { thinking: "off", lightContext: true, tools: "none", timeoutSeconds: 120 };
+    default: return { thinking: "", lightContext: false, tools: "", timeoutSeconds: 300 };
+  }
+}
+function detectPreset(thinking: string, lightContext: boolean, tools: string, timeout: number): TaskPreset {
+  if (thinking === "off" && lightContext && tools === "exec,read,write" && timeout <= 180) return "script";
+  if (!thinking && !lightContext && !tools && timeout >= 300) return "agent";
+  if (thinking === "off" && lightContext && tools === "none" && timeout <= 120) return "simple";
+  return "custom";
+}
 import { cronToHuman, getNextRuns, isValidCron, CRON_PRESETS } from "@/lib/cron-parser";
 import type { CronJob } from "./CronJobCard";
 
@@ -222,6 +266,9 @@ export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobMod
   const [payloadKind, setPayloadKind] = useState<PayloadKind>("agentTurn");
   const [message, setMessage] = useState("");
 
+  // Task preset
+  const [taskPreset, setTaskPreset] = useState<TaskPreset>("script");
+
   // Section 4: Advanced
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [model, setModel] = useState("");
@@ -239,6 +286,20 @@ export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobMod
   const [showPresets, setShowPresets] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+
+  // Apply task preset
+  useEffect(() => {
+    if (taskPreset !== "custom") {
+      const p = applyPreset(taskPreset);
+      setThinking(p.thinking);
+      setLightContext(p.lightContext);
+      setTools(p.tools);
+      setTimeoutSeconds(p.timeoutSeconds);
+      setShowAdvanced(false);
+    } else {
+      setShowAdvanced(true);
+    }
+  }, [taskPreset]);
 
   // Auto-set payload kind based on session
   useEffect(() => {
@@ -327,12 +388,20 @@ export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobMod
       else setPayloadKind("agentTurn");
 
       // Advanced
-      if (editingJob.model) { setModel(editingJob.model); setShowAdvanced(true); }
-      if (editingJob.thinking) { setThinking(editingJob.thinking); setShowAdvanced(true); }
-      if (editingJob.lightContext) { setLightContext(true); setShowAdvanced(true); }
-      if (editingJob.tools) { setTools(editingJob.tools); setShowAdvanced(true); }
-      if (editingJob.deliveryChannel) { setDeliveryChannel(editingJob.deliveryChannel); setShowAdvanced(true); }
-      if (editingJob.deliveryTo) { setDeliveryTo(editingJob.deliveryTo); setShowAdvanced(true); }
+      const eTh = editingJob.thinking || "";
+      const eLc = !!editingJob.lightContext;
+      const eTl = editingJob.tools || "";
+      const eTo = editingJob.timeoutSeconds || 300;
+      if (editingJob.model) { setModel(editingJob.model); }
+      setThinking(eTh);
+      setLightContext(eLc);
+      setTools(eTl);
+      setTimeoutSeconds(eTo);
+      const detected = detectPreset(eTh, eLc, eTl, eTo);
+      setTaskPreset(detected);
+      if (detected === "custom") setShowAdvanced(true);
+      if (editingJob.deliveryChannel) { setDeliveryChannel(editingJob.deliveryChannel); }
+      if (editingJob.deliveryTo) { setDeliveryTo(editingJob.deliveryTo); }
     } else {
       // Reset for create
       setName("");
@@ -356,11 +425,12 @@ export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobMod
       setPayloadKind("agentTurn");
       setMessage("");
       setShowAdvanced(false);
+      setTaskPreset("script");
       setModel("");
-      setThinking("");
-      setTimeoutSeconds(30);
-      setLightContext(false);
-      setTools("");
+      setThinking("off");
+      setTimeoutSeconds(180);
+      setLightContext(true);
+      setTools("exec,read,write");
       setExact(false);
       setAnnounce(null);
       setDeliveryChannel("");
@@ -889,7 +959,7 @@ export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobMod
             <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
               {/* Agent */}
               <div>
-                <label style={labelStyle}>Agent</label>
+                <label style={labelStyle}>Agente <InfoTip text="Qu\u00e9 bot ejecuta esta tarea. Cada agente tiene su propio modelo y configuraci\u00f3n." /></label>
                 <select value={agentId} onChange={(e) => setAgentId(e.target.value)} style={selectStyle}>
                   {AGENTS.map((a) => (
                     <option key={a.id} value={a.id}>
@@ -899,9 +969,37 @@ export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobMod
                 </select>
               </div>
 
+              {/* Task Preset */}
+              <div>
+                <label style={labelStyle}>Tipo de tarea <InfoTip text="Determina cu\u00e1ntos recursos usa el agente. 'Script directo' es r\u00e1pido y barato. 'Tarea de agente' da m\u00e1s libertad pero tarda m\u00e1s." /></label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.375rem" }}>
+                  {TASK_PRESETS.map((tp) => (
+                    <button key={tp.id} type="button" onClick={() => setTaskPreset(tp.id)}
+                      style={{
+                        padding: "0.5rem 0.625rem", borderRadius: "0.5rem", textAlign: "left",
+                        border: "1px solid", cursor: "pointer", transition: "all 0.15s",
+                        backgroundColor: taskPreset === tp.id ? "rgba(34,197,94,0.12)" : "var(--card)",
+                        borderColor: taskPreset === tp.id ? "rgba(34,197,94,0.4)" : "var(--border)",
+                      }}>
+                      <div style={{ fontSize: "0.8rem", fontWeight: 600, color: taskPreset === tp.id ? "#22c55e" : "var(--text-primary)" }}>
+                        {tp.emoji} {tp.label}
+                      </div>
+                      <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "2px" }}>{tp.desc}</div>
+                    </button>
+                  ))}
+                </div>
+                {taskPreset !== "custom" && (
+                  <div style={{ marginTop: "0.375rem", padding: "0.3rem 0.625rem", borderRadius: "0.375rem", backgroundColor: "rgba(34,197,94,0.08)", fontSize: "0.7rem", color: "#22c55e" }}>
+                    \u2705 {taskPreset === "script" ? "Thinking off \u00b7 Contexto ligero \u00b7 Tools: exec,read,write \u00b7 Timeout: 180s"
+                      : taskPreset === "agent" ? "Thinking default \u00b7 Contexto completo \u00b7 Todos los tools \u00b7 Timeout: 600s"
+                      : "Thinking off \u00b7 Contexto ligero \u00b7 Sin tools \u00b7 Timeout: 120s"}
+                  </div>
+                )}
+              </div>
+
               {/* Session target */}
               <div>
-                <label style={labelStyle}>Session Target</label>
+                <label style={labelStyle}>Sesi\u00f3n <InfoTip text="Isolated = cada ejecuci\u00f3n empieza limpia (recomendado para crons). Main = contin\u00faa la conversaci\u00f3n existente." /></label>
                 <div style={{ display: "flex", gap: "0.375rem" }}>
                   {(["main", "isolated", "custom"] as const).map((st) => (
                     <button key={st} type="button" onClick={() => setSessionTarget(st)}
@@ -933,7 +1031,7 @@ export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobMod
 
               {/* Payload type */}
               <div>
-                <label style={labelStyle}>Payload Type</label>
+                <label style={labelStyle}>Tipo de payload <InfoTip text="Agent Turn = el agente recibe un mensaje y responde. System Event = inyecta un evento en la sesi\u00f3n sin respuesta directa." /></label>
                 <div style={{ display: "flex", gap: "0.375rem" }}>
                   {(["agentTurn", "systemEvent"] as const).map((pk) => {
                     const isForced = (sessionTarget === "main" && pk === "agentTurn") ||
@@ -1004,7 +1102,8 @@ export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobMod
               {/* Message */}
               <div>
                 <label style={labelStyle}>
-                  {payloadKind === "agentTurn" ? "Message / Prompt *" : "System Event Text *"}
+                  {payloadKind === "agentTurn" ? "Mensaje / Prompt *" : "Texto del evento *"}
+                  <InfoTip text="El texto que recibe el agente. Para scripts: 'Ejecuta: python3 /ruta/script.py'. Para tareas: describe qu\u00e9 debe hacer." />
                 </label>
                 <textarea value={message}
                   onChange={(e) => { setMessage(e.target.value); if (errors.message) setErrors(p => ({ ...p, message: "" })); }}
@@ -1032,7 +1131,7 @@ export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobMod
                 fontSize: "0.85rem", fontWeight: 700,
               }}>
               <Settings2 className="w-4 h-4" />
-              Advanced Options
+              Opciones avanzadas
               {showAdvanced ? <ChevronUp className="w-4 h-4 ml-auto" /> : <ChevronDown className="w-4 h-4 ml-auto" />}
             </button>
 
@@ -1041,14 +1140,14 @@ export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobMod
                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                   {/* Model */}
                   <div style={{ flex: 1, minWidth: "140px" }}>
-                    <label style={labelStyle}>Model Override</label>
+                    <label style={labelStyle}>Modelo <InfoTip text="Fuerza un modelo espec\u00edfico. Vac\u00edo = usa el modelo por defecto del agente." /></label>
                     <select value={model} onChange={(e) => setModel(e.target.value)} style={selectStyle}>
                       {MODELS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
                     </select>
                   </div>
                   {/* Thinking */}
                   <div style={{ flex: 1, minWidth: "140px" }}>
-                    <label style={labelStyle}>Thinking Level</label>
+                    <label style={labelStyle}>Thinking <InfoTip text="Nivel de razonamiento. Off para scripts simples. High para tareas complejas que requieren planificaci\u00f3n." /></label>
                     <select value={thinking} onChange={(e) => setThinking(e.target.value)} style={selectStyle}>
                       {THINKING_LEVELS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
@@ -1058,7 +1157,7 @@ export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobMod
                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                   {/* Timeout */}
                   <div style={{ flex: 1, minWidth: "100px" }}>
-                    <label style={labelStyle}>Timeout (seconds)</label>
+                    <label style={labelStyle}>Timeout (s) <InfoTip text="Tiempo m\u00e1ximo. Scripts: 120-180s. Tareas complejas: 300-600s. Backups: 300s." /></label>
                     <input type="number" min={5} max={3600} value={timeoutSeconds}
                       onChange={(e) => setTimeoutSeconds(Number(e.target.value))}
                       style={{ ...inputStyle, textAlign: "center" }}
@@ -1066,7 +1165,7 @@ export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobMod
                   </div>
                   {/* Tools */}
                   <div style={{ flex: 2, minWidth: "160px" }}>
-                    <label style={labelStyle}>Tools Allowlist</label>
+                    <label style={labelStyle}>Tools <InfoTip text="Herramientas disponibles. 'exec,read,write' para scripts. Vac\u00edo = todas las herramientas. 'none' = solo texto." /></label>
                     <input type="text" value={tools} onChange={(e) => setTools(e.target.value)}
                       placeholder="exec,read,write"
                       style={{ ...inputStyle, fontFamily: "monospace", fontSize: "0.8rem" }}
@@ -1079,7 +1178,7 @@ export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobMod
                   <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
                     <input type="checkbox" checked={lightContext} onChange={(e) => setLightContext(e.target.checked)}
                       style={{ accentColor: "var(--accent)" }} />
-                    Light Context
+                    Contexto ligero <InfoTip text="Reduce la informaci\u00f3n del agente. Activar para scripts que no necesitan contexto completo." />
                   </label>
                   <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
                     <input type="checkbox" checked={exact} onChange={(e) => setExact(e.target.checked)}
@@ -1095,75 +1194,30 @@ export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobMod
                   )}
                 </div>
 
-                {/* Delivery */}
+                {/* Delivery - simplified */}
                 <div style={{ borderTop: "1px solid var(--border)", paddingTop: "0.75rem" }}>
-                  <label style={labelStyle}>Delivery</label>
-                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: "0.375rem", cursor: "pointer", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                      <input type="radio" name="announce" checked={announce === true} onChange={() => setAnnounce(true)}
-                        style={{ accentColor: "var(--accent)" }} />
-                      📢 Announce
-                    </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: "0.375rem", cursor: "pointer", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                      <input type="radio" name="announce" checked={announce === false} onChange={() => { setAnnounce(false); setDeliveryChannel(""); setDeliveryTo(""); }}
-                        style={{ accentColor: "var(--accent)" }} />
-                      🔇 No Deliver
-                    </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: "0.375rem", cursor: "pointer", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                      <input type="radio" name="announce" checked={announce === null} onChange={() => setAnnounce(null)}
-                        style={{ accentColor: "var(--accent)" }} />
-                      ⚙️ Default
-                    </label>
-                  </div>
-                  {announce === true && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                        <div style={{ flex: 1, minWidth: "120px" }}>
-                          <label style={{ ...labelStyle, fontSize: "0.7rem" }}>Canal</label>
-                          <select value={deliveryChannel} onChange={(e) => setDeliveryChannel(e.target.value)} style={selectStyle}>
-                            <option value="">Canal...</option>
-                            {DELIVERY_CHANNELS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                          </select>
-                        </div>
-                        <div style={{ flex: 1, minWidth: "140px" }}>
-                          <label style={{ ...labelStyle, fontSize: "0.7rem" }}>Entregar en chat de</label>
-                          <select value={deliveryTo} onChange={(e) => setDeliveryTo(e.target.value)} style={selectStyle}>
-                            <option value="">Seleccionar destino...</option>
-                            <option value="257725883">👤 Rubén (DM principal)</option>
-                            {AGENTS.filter(a => a.id).map((a) => (
-                              <option key={a.id} value="257725883">
-                                {a.emoji} {a.label} (vía bot {a.id})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      {deliveryChannel && deliveryTo && (
-                        <div style={{
-                          padding: "0.375rem 0.625rem",
-                          backgroundColor: "rgba(34, 197, 94, 0.1)",
-                          border: "1px solid rgba(34, 197, 94, 0.3)",
-                          borderRadius: "0.375rem",
-                          color: "#22c55e",
-                          fontSize: "0.75rem",
-                        }}>
-                          ✅ Delivery: {deliveryChannel} → {deliveryTo} {agentId ? `(vía bot ${agentId})` : ""}
-                        </div>
-                      )}
-                      {announce === true && !deliveryTo && (
-                        <div style={{
-                          padding: "0.375rem 0.625rem",
-                          backgroundColor: "rgba(239, 68, 68, 0.1)",
-                          border: "1px solid rgba(239, 68, 68, 0.3)",
-                          borderRadius: "0.375rem",
-                          color: "#ef4444",
-                          fontSize: "0.75rem",
-                        }}>
-                          ⚠️ Announce activado pero sin destino. Selecciona un chat de destino para evitar errores.
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <label style={labelStyle}>Entrega de resultados <InfoTip text="Si está activo, el resultado se envía por Telegram al chat de Rubén via el bot del agente seleccionado." /></label>
+                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontSize: "0.85rem", color: "var(--text-secondary)", padding: "0.4rem 0" }}>
+                    <input type="checkbox" checked={announce === true}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setAnnounce(true);
+                          setDeliveryChannel("telegram");
+                          setDeliveryTo("257725883");
+                        } else {
+                          setAnnounce(false);
+                          setDeliveryChannel("");
+                          setDeliveryTo("");
+                        }
+                      }}
+                      style={{ accentColor: "var(--accent)", width: "1rem", height: "1rem" }} />
+                    📢 Enviar resultado por Telegram
+                    {announce === true && agentId && (
+                      <span style={{ fontSize: "0.72rem", color: "#22c55e", marginLeft: "0.25rem" }}>
+                        vía bot {agentId}
+                      </span>
+                    )}
+                  </label>
                 </div>
               </div>
             )}

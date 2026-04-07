@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { format, addDays, startOfDay, isSameDay } from "date-fns";
 import { Clock, Repeat, CalendarX } from "lucide-react";
 import { getNextRuns, isValidCron } from "@/lib/cron-parser";
@@ -22,22 +22,32 @@ interface DayColumn {
   intervalJobs: { job: CronJob; color: string; intervalLabel: string }[];
 }
 
-// Pastel-ish colors that look great on dark backgrounds
-const JOB_COLORS = [
-  "#FF6B6B", // coral red
-  "#4FC3F7", // sky blue
-  "#81C784", // sage green
-  "#FFB74D", // amber
-  "#CE93D8", // lavender
-  "#F48FB1", // pink
-  "#80DEEA", // teal
-  "#6366F1", // indigo (accent)
-  "#A5D6A7", // mint
-  "#FF8A65", // deep orange
-];
+// Consistent colors per agent
+const AGENT_COLORS: Record<string, string> = {
+  ruben: "#a78bfa",
+  bill: "#FF6B6B",
+  elon: "#4ade80",
+  quin: "#facc15",
+  trump: "#fb923c",
+  warren: "#4FC3F7",
+  system: "#9ca3af",
+};
 
-function getJobColor(index: number): string {
-  return JOB_COLORS[index % JOB_COLORS.length];
+function getAgentColor(agentId: string): string {
+  return AGENT_COLORS[agentId?.toLowerCase()] || "#CE93D8";
+}
+
+const CATEGORY_COLORS: Record<string, string> = {
+  backup: "#4ade80",
+  monitoring: "#60a5fa",
+  maintenance: "#facc15",
+  reporting: "#a78bfa",
+  content: "#fb923c",
+  general: "#9ca3af",
+};
+
+function getCategoryColor(category: string | undefined): string {
+  return CATEGORY_COLORS[category?.toLowerCase() || ""] || "#6b7280";
 }
 
 function getScheduleExpr(schedule: string | Record<string, unknown>): string | null {
@@ -73,14 +83,14 @@ function formatIntervalLabel(ms: number): string {
 function getJobEmoji(agentId: string): string {
   const emojis: Record<string, string> = {
     main: "",
-    academic: "🎓",
-    infra: "🔧",
-    studio: "🎬",
-    social: "📱",
-    linkedin: "💼",
-    freelance: "💼",
+    academic: "AC",
+    infra: "IF",
+    studio: "ST",
+    social: "SO",
+    linkedin: "LI",
+    freelance: "FL",
   };
-  return emojis[agentId] || "🤖";
+  return emojis[agentId] || agentId?.substring(0, 2).toUpperCase() || "--";
 }
 
 interface CronWeeklyTimelineProps {
@@ -94,8 +104,33 @@ export function CronWeeklyTimeline({ jobs }: CronWeeklyTimelineProps) {
     [now]
   );
 
+  // Filter state
+  const [activeAgent, setActiveAgent] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  // Extract unique agents from enabled jobs
+  const agents = useMemo(() => {
+    const agentSet = new Map<string, number>();
+    jobs.filter((j) => j.enabled).forEach((j) => {
+      const id = j.agentId || "system";
+      agentSet.set(id, (agentSet.get(id) || 0) + 1);
+    });
+    return Array.from(agentSet.entries()).map(([id, count]) => ({ id, count, color: getAgentColor(id) }));
+  }, [jobs]);
+
+  // Extract unique categories from enabled jobs
+  const categories = useMemo(() => {
+    const catSet = new Map<string, number>();
+    jobs.filter((j) => j.enabled && j.category).forEach((j) => {
+      catSet.set(j.category!, (catSet.get(j.category!) || 0) + 1);
+    });
+    return Array.from(catSet.entries()).map(([name, count]) => ({ name, count }));
+  }, [jobs]);
+
   const days = useMemo<DayColumn[]>(() => {
-    const enabledJobs = jobs.filter((j) => j.enabled);
+    const enabledJobs = jobs.filter((j) => j.enabled)
+      .filter((j) => !activeAgent || (j.agentId || "system") === activeAgent)
+      .filter((j) => !activeCategory || j.category === activeCategory);
 
     // Compute all events for next 7 days
     const allEvents: ScheduledEvent[] = [];
@@ -104,8 +139,8 @@ export function CronWeeklyTimeline({ jobs }: CronWeeklyTimelineProps) {
       { job: CronJob; color: string; intervalLabel: string }
     >();
 
-    enabledJobs.forEach((job, idx) => {
-      const color = getJobColor(idx);
+    enabledJobs.forEach((job) => {
+      const color = getAgentColor(job.agentId);
       const expr = getScheduleExpr(job.schedule);
       const intervalMs = getIntervalMs(job.schedule);
       const atTime = getAtTime(job.schedule);
@@ -166,7 +201,7 @@ export function CronWeeklyTimeline({ jobs }: CronWeeklyTimelineProps) {
     }
 
     return columns;
-  }, [jobs, now, sevenDaysOut]);
+  }, [jobs, now, sevenDaysOut, activeAgent, activeCategory]);
 
   const totalEvents = useMemo(
     () => days.reduce((sum, d) => sum + d.events.length, 0),
@@ -194,45 +229,144 @@ export function CronWeeklyTimeline({ jobs }: CronWeeklyTimelineProps) {
 
   return (
     <div>
-      {/* Legend */}
+      {/* Agent Filter Bar */}
       <div
         style={{
           display: "flex",
           flexWrap: "wrap",
-          gap: "0.5rem",
+          gap: "0.4rem",
           marginBottom: "1rem",
+          alignItems: "center",
         }}
       >
-        {jobs
-          .filter((j) => j.enabled)
-          .map((job, idx) => (
+        {/* "All" pill */}
+        <button
+          onClick={() => setActiveAgent(null)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.35rem",
+            padding: "0.3rem 0.75rem",
+            borderRadius: "0.375rem",
+            fontSize: "0.75rem",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            border: "1px solid",
+            cursor: "pointer",
+            transition: "all 0.15s",
+            backgroundColor: !activeAgent ? "rgba(255,255,255,0.12)" : "transparent",
+            color: !activeAgent ? "var(--text-primary)" : "var(--text-muted)",
+            borderColor: !activeAgent ? "rgba(255,255,255,0.25)" : "var(--border)",
+          }}
+        >
+          All
+          <span style={{ fontSize: "0.65rem", opacity: 0.7 }}>
+            ({jobs.filter((j) => j.enabled).length})
+          </span>
+        </button>
+
+        {agents.map((agent) => (
+          <button
+            key={agent.id}
+            onClick={() => setActiveAgent(activeAgent === agent.id ? null : agent.id)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              padding: "0.3rem 0.75rem",
+              borderRadius: "0.375rem",
+              fontSize: "0.75rem",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              border: "1px solid",
+              cursor: "pointer",
+              transition: "all 0.15s",
+              backgroundColor: activeAgent === agent.id
+                ? `color-mix(in srgb, ${agent.color} 20%, transparent)`
+                : "transparent",
+              color: activeAgent === agent.id ? agent.color : "var(--text-muted)",
+              borderColor: activeAgent === agent.id
+                ? `color-mix(in srgb, ${agent.color} 40%, transparent)`
+                : "var(--border)",
+            }}
+          >
             <div
-              key={job.id}
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "2px",
+                backgroundColor: agent.color,
+                flexShrink: 0,
+              }}
+            />
+            {agent.id}
+            <span style={{ fontSize: "0.65rem", opacity: 0.7 }}>({agent.count})</span>
+          </button>
+        ))}
+
+        {/* Separator */}
+        {categories.length > 0 && (
+          <div style={{ width: "1px", height: "1.25rem", backgroundColor: "var(--border)", alignSelf: "center" }} />
+        )}
+
+        {/* Category filters */}
+        {categories.length > 0 && (
+          <button
+            onClick={() => setActiveCategory(null)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              padding: "0.3rem 0.65rem",
+              borderRadius: "0.375rem",
+              fontSize: "0.7rem",
+              fontWeight: 600,
+              border: "1px solid",
+              cursor: "pointer",
+              transition: "all 0.15s",
+              backgroundColor: !activeCategory ? "rgba(255,255,255,0.08)" : "transparent",
+              color: !activeCategory ? "var(--text-secondary)" : "var(--text-muted)",
+              borderColor: !activeCategory ? "rgba(255,255,255,0.15)" : "var(--border)",
+            }}
+          >
+            All cat.
+          </button>
+        )}
+        {categories.map((cat) => {
+          const cc = getCategoryColor(cat.name);
+          return (
+            <button
+              key={cat.name}
+              onClick={() => setActiveCategory(activeCategory === cat.name ? null : cat.name)}
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "0.4rem",
-                padding: "0.25rem 0.6rem",
-                borderRadius: "9999px",
-                backgroundColor: `${getJobColor(idx)}18`,
-                border: `1px solid ${getJobColor(idx)}40`,
-                fontSize: "0.75rem",
-                color: getJobColor(idx),
+                gap: "0.35rem",
+                padding: "0.3rem 0.65rem",
+                borderRadius: "0.375rem",
+                fontSize: "0.7rem",
                 fontWeight: 600,
+                border: "1px solid",
+                cursor: "pointer",
+                transition: "all 0.15s",
+                backgroundColor: activeCategory === cat.name
+                  ? `color-mix(in srgb, ${cc} 20%, transparent)`
+                  : "transparent",
+                color: activeCategory === cat.name ? cc : "var(--text-muted)",
+                borderColor: activeCategory === cat.name
+                  ? `color-mix(in srgb, ${cc} 40%, transparent)`
+                  : "var(--border)",
               }}
             >
-              <div
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  backgroundColor: getJobColor(idx),
-                  flexShrink: 0,
-                }}
-              />
-              {getJobEmoji(job.agentId)} {job.name}
-            </div>
-          ))}
+              <div style={{ width: 7, height: 7, borderRadius: "2px", backgroundColor: cc, flexShrink: 0 }} />
+              {cat.name}
+              <span style={{ fontSize: "0.6rem", opacity: 0.6 }}>({cat.count})</span>
+            </button>
+          );
+        })}
+
         <div
           style={{
             marginLeft: "auto",
@@ -241,7 +375,7 @@ export function CronWeeklyTimeline({ jobs }: CronWeeklyTimelineProps) {
             alignSelf: "center",
           }}
         >
-          {totalEvents} scheduled events in the next 7 days
+          {totalEvents} events in 7 days
         </div>
       </div>
 
@@ -319,95 +453,114 @@ export function CronWeeklyTimeline({ jobs }: CronWeeklyTimelineProps) {
               )}
 
               {/* One-time / cron events */}
-              {day.events.map((event, eIdx) => (
-                <div
-                  key={`${event.job.id}-${eIdx}`}
-                  title={`${event.job.name}\n${format(event.time, "HH:mm")}`}
-                  style={{
-                    padding: "0.3rem 0.5rem",
-                    borderRadius: "0.4rem",
-                    backgroundColor: `${event.color}18`,
-                    border: `1px solid ${event.color}35`,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "1px",
-                  }}
-                >
+              {day.events.map((event, eIdx) => {
+                const catColor = getCategoryColor(event.job.category);
+                return (
                   <div
+                    key={`${event.job.id}-${eIdx}`}
+                    title={`${event.job.name}\n${format(event.time, "HH:mm")}\nAgent: ${event.job.agentId}${event.job.category ? ` | ${event.job.category}` : ""}`}
                     style={{
+                      padding: "0.3rem 0.5rem",
+                      borderRadius: "0.4rem",
+                      backgroundColor: `${event.color}12`,
+                      border: `1px solid ${event.color}30`,
                       display: "flex",
-                      alignItems: "center",
-                      gap: "0.3rem",
-                      fontSize: "0.65rem",
-                      color: event.color,
-                      fontWeight: 700,
+                      flexDirection: "column",
+                      gap: "2px",
                     }}
                   >
-                    <Clock style={{ width: 9, height: 9, flexShrink: 0 }} />
-                    {format(event.time, "HH:mm")}
-                    {event.isInterval && (
-                      <Repeat style={{ width: 9, height: 9, opacity: 0.7 }} />
-                    )}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.3rem",
+                        fontSize: "0.65rem",
+                        color: event.color,
+                        fontWeight: 700,
+                      }}
+                    >
+                      <Clock style={{ width: 9, height: 9, flexShrink: 0 }} />
+                      {format(event.time, "HH:mm")}
+                      {event.isInterval && (
+                        <Repeat style={{ width: 9, height: 9, opacity: 0.7 }} />
+                      )}
+                      {/* Color squares: agent + category */}
+                      <div style={{ display: "flex", gap: "2px", marginLeft: "auto" }}>
+                        <div style={{ width: 7, height: 7, borderRadius: "2px", backgroundColor: event.color }} title={event.job.agentId} />
+                        {event.job.category && (
+                          <div style={{ width: 7, height: 7, borderRadius: "2px", backgroundColor: catColor }} title={event.job.category} />
+                        )}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "0.65rem",
+                        color: "var(--text-secondary)",
+                        fontWeight: 500,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        maxWidth: "100%",
+                      }}
+                    >
+                      {event.job.name}
+                    </div>
                   </div>
-                  <div
-                    style={{
-                      fontSize: "0.65rem",
-                      color: "var(--text-secondary)",
-                      fontWeight: 500,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      maxWidth: "100%",
-                    }}
-                  >
-                    {getJobEmoji(event.job.agentId)} {event.job.name}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
 
               {/* Interval jobs (< 24h frequency) */}
-              {day.intervalJobs.map(({ job, color, intervalLabel }) => (
-                <div
-                  key={`${job.id}-interval`}
-                  title={`${job.name} — ${intervalLabel}`}
-                  style={{
-                    padding: "0.3rem 0.5rem",
-                    borderRadius: "0.4rem",
-                    backgroundColor: `${color}12`,
-                    border: `1px solid ${color}25`,
-                    borderStyle: "dashed",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "1px",
-                  }}
-                >
+              {day.intervalJobs.map(({ job, color, intervalLabel }) => {
+                const catColor = getCategoryColor(job.category);
+                return (
                   <div
+                    key={`${job.id}-interval`}
+                    title={`${job.name} — ${intervalLabel}\nAgent: ${job.agentId}${job.category ? ` | ${job.category}` : ""}`}
                     style={{
+                      padding: "0.3rem 0.5rem",
+                      borderRadius: "0.4rem",
+                      backgroundColor: `${color}12`,
+                      border: `1px solid ${color}25`,
+                      borderStyle: "dashed",
                       display: "flex",
-                      alignItems: "center",
-                      gap: "0.3rem",
-                      fontSize: "0.65rem",
-                      color: color,
-                      fontWeight: 700,
+                      flexDirection: "column",
+                      gap: "2px",
                     }}
                   >
-                    <Repeat style={{ width: 9, height: 9, flexShrink: 0 }} />
-                    {intervalLabel}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.3rem",
+                        fontSize: "0.65rem",
+                        color: color,
+                        fontWeight: 700,
+                      }}
+                    >
+                      <Repeat style={{ width: 9, height: 9, flexShrink: 0 }} />
+                      {intervalLabel}
+                      <div style={{ display: "flex", gap: "2px", marginLeft: "auto" }}>
+                        <div style={{ width: 7, height: 7, borderRadius: "2px", backgroundColor: color }} title={job.agentId} />
+                        {job.category && (
+                          <div style={{ width: 7, height: 7, borderRadius: "2px", backgroundColor: catColor }} title={job.category} />
+                        )}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "0.65rem",
+                        color: "var(--text-secondary)",
+                        fontWeight: 500,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {job.name}
+                    </div>
                   </div>
-                  <div
-                    style={{
-                      fontSize: "0.65rem",
-                      color: "var(--text-secondary)",
-                      fontWeight: 500,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {getJobEmoji(job.agentId)} {job.name}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}

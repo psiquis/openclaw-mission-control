@@ -1,6 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { execSync } from "child_process";
 
+function loadTemplateCategoryMap(): Record<string, string> {
+  try {
+    const Database = require('better-sqlite3');
+    const path = require('path');
+    const fs = require('fs');
+    const map: Record<string, string> = {};
+
+    // 1. Load from cron-templates.db (match by name)
+    const dbPath = path.join(process.cwd(), 'data', 'cron-templates.db');
+    if (fs.existsSync(dbPath)) {
+      const db = new Database(dbPath, { readonly: true });
+      const rows = db.prepare('SELECT name, category FROM cron_templates').all() as Array<{ name: string; category: string }>;
+      db.close();
+      for (const r of rows) map[r.name.toLowerCase()] = r.category;
+    }
+
+    // 2. Load manual overrides from cron-categories.json (jobId -> category)
+    const overridesPath = path.join(process.cwd(), 'data', 'cron-categories.json');
+    if (fs.existsSync(overridesPath)) {
+      const overrides = JSON.parse(fs.readFileSync(overridesPath, 'utf-8'));
+      for (const [key, val] of Object.entries(overrides)) {
+        map[key.toLowerCase()] = val as string;
+      }
+    }
+
+    return map;
+  } catch { return {}; }
+}
+
 // GET: List all cron jobs from the OpenClaw gateway
 export async function GET() {
   try {
@@ -9,6 +38,7 @@ export async function GET() {
       encoding: "utf-8",
     });
 
+    const categoryMap = loadTemplateCategoryMap();
     const data = JSON.parse(output);
     const jobs = (data.jobs || []).map((job: Record<string, unknown>) => {
       const payload = (job.payload || {}) as Record<string, unknown>;
@@ -48,6 +78,7 @@ export async function GET() {
         deliveryMode: delivery.mode as string || undefined,
         deliveryChannel: delivery.channel as string || undefined,
         deliveryTo: delivery.to as string || undefined,
+        category: categoryMap[(job.id as string || '').toLowerCase()] || categoryMap[(job.name as string || '').toLowerCase()] || undefined,
       };
     });
 
@@ -105,7 +136,7 @@ export async function PUT(request: NextRequest) {
 
     const action = enabled ? "enable" : "disable";
     execSync(
-      `openclaw cron ${action} ${id} --json 2>/dev/null || openclaw cron update ${id} --enabled=${enabled} --json 2>/dev/null`,
+      `openclaw cron ${action} ${id} 2>/dev/null`,
       { timeout: 10000, encoding: "utf-8" }
     );
 
@@ -253,7 +284,7 @@ export async function PATCH(request: NextRequest) {
     if (patch.enabled === true) args.push("--enable");
     if (patch.enabled === false) args.push("--disable");
 
-    args.push("--json");
+    // Note: openclaw cron edit does NOT support --json (unlike add/list/rm)
 
     const cmd = args.join(" ");
     execSync(cmd, { timeout: 15000, encoding: "utf-8" });

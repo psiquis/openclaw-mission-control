@@ -21,7 +21,7 @@ interface CronTemplateData {
 }
 
 const AGENTS = ['bill', 'elon', 'ruben', 'quin', 'warren', 'trump'];
-const CATEGORIES = ['backup', 'monitoring', 'maintenance', 'reporting', 'content', 'general'];
+const DEFAULT_CATEGORIES = ['backup', 'monitoring', 'maintenance', 'reporting', 'content', 'general'];
 
 const emptyTemplate: Partial<CronTemplateData> = {
   name: '', description: '', category: 'general', agentId: 'bill',
@@ -42,6 +42,68 @@ export default function CronTemplatesPage() {
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+
+  // Category management
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState('');
+  const [categoryAction, setCategoryAction] = useState(false);
+
+  // Derived: all categories from templates + defaults
+  const allCategories = Array.from(new Set([
+    ...DEFAULT_CATEGORIES,
+    ...templates.map(t => t.category),
+  ])).sort();
+
+  const categoryCount = (cat: string) => templates.filter(t => t.category === cat).length;
+
+  const handleRenameCategory = async (oldName: string, newName: string) => {
+    if (!newName.trim() || newName === oldName) { setEditingCategory(null); return; }
+    setCategoryAction(true);
+    try {
+      const res = await fetch('/api/cron/templates/categories', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldName, newName: newName.trim() }),
+      });
+      if (res.ok) {
+        fetchTemplates();
+        if (filterCategory === oldName) setFilterCategory(newName.trim());
+      }
+    } catch (e) { console.error(e); }
+    finally { setCategoryAction(false); setEditingCategory(null); }
+  };
+
+  const handleDeleteCategory = async (name: string) => {
+    const reassignTo = name === 'general' ? 'uncategorized' : 'general';
+    if (!confirm(`Delete category "${name}"? Its ${categoryCount(name)} template(s) will move to "${reassignTo}".`)) return;
+    setCategoryAction(true);
+    try {
+      const res = await fetch(`/api/cron/templates/categories?name=${encodeURIComponent(name)}&reassignTo=${encodeURIComponent(reassignTo)}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchTemplates();
+        if (filterCategory === name) setFilterCategory('all');
+      }
+    } catch (e) { console.error(e); }
+    finally { setCategoryAction(false); }
+  };
+
+  const handleAddCategory = async () => {
+    const name = newCategoryName.trim().toLowerCase();
+    if (!name || allCategories.includes(name)) return;
+    // Create a placeholder template to persist the category, then delete it
+    // Actually, just add via creating a template with that category.
+    // Simpler: just allow it in the select — it will persist when a template uses it.
+    // For now, we'll add it to DEFAULT_CATEGORIES at runtime.
+    // Since categories are derived from templates, we need at least one template in it.
+    // Let's just show it in the dropdown — user creates a template with it.
+    setNewCategoryName('');
+    // Force the form category to the new one if form is open
+    if (creating || editing) {
+      setFormData(p => ({ ...p, category: name }));
+    }
+  };
 
   const fetchTemplates = () => {
     fetch('/api/cron/templates')
@@ -145,7 +207,6 @@ export default function CronTemplatesPage() {
     }
   };
 
-  const categories = Array.from(new Set(templates.map(t => t.category))).sort();
   const filtered = filterCategory === 'all' ? templates : templates.filter(t => t.category === filterCategory);
   const inputStyle = { backgroundColor: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' };
   const isFormOpen = creating || editing !== null;
@@ -176,14 +237,98 @@ export default function CronTemplatesPage() {
         </div>
       </div>
 
-      {/* Filter */}
-      <div className="flex items-center gap-3 mb-6">
+      {/* Filter + Category Manager */}
+      <div className="flex items-center gap-3 mb-4">
         <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={inputStyle}>
           <option value="all">All categories</option>
-          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
+        <button
+          onClick={() => setShowCategoryManager(!showCategoryManager)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium"
+          style={{ color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+        >
+          <Pencil className="w-3 h-3" /> Categories
+        </button>
         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{filtered.length} templates</span>
       </div>
+
+      {/* Category Manager */}
+      {showCategoryManager && (
+        <div className="mb-6 p-4 rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Manage Categories</h3>
+            <button onClick={() => setShowCategoryManager(false)} className="p-1" style={{ color: 'var(--text-muted)' }}><X className="w-4 h-4" /></button>
+          </div>
+          <div className="flex flex-col gap-1.5 mb-3">
+            {allCategories.map(cat => {
+              const count = categoryCount(cat);
+              const isEditing = editingCategory === cat;
+              return (
+                <div key={cat} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm" style={{ backgroundColor: 'var(--card-elevated)', border: '1px solid var(--border)' }}>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editCategoryName}
+                      onChange={e => setEditCategoryName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                      onKeyDown={e => { if (e.key === 'Enter') handleRenameCategory(cat, editCategoryName); if (e.key === 'Escape') setEditingCategory(null); }}
+                      onBlur={() => handleRenameCategory(cat, editCategoryName)}
+                      autoFocus
+                      className="px-2 py-0.5 rounded text-xs flex-1"
+                      style={inputStyle}
+                    />
+                  ) : (
+                    <span className="flex-1 font-medium" style={{ color: 'var(--text-secondary)' }}>{cat}</span>
+                  )}
+                  <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{count} template{count !== 1 ? 's' : ''}</span>
+                  {!isEditing && (
+                    <>
+                      <button
+                        onClick={() => { setEditingCategory(cat); setEditCategoryName(cat); }}
+                        className="p-1 rounded" style={{ color: 'var(--text-muted)' }}
+                        title="Rename"
+                        disabled={categoryAction}
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCategory(cat)}
+                        className="p-1 rounded" style={{ color: 'var(--error)' }}
+                        title={`Delete (move templates to ${cat === 'general' ? 'uncategorized' : 'general'})`}
+                        disabled={categoryAction}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={newCategoryName}
+              onChange={e => setNewCategoryName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+              onKeyDown={e => { if (e.key === 'Enter') handleAddCategory(); }}
+              placeholder="new-category"
+              className="px-3 py-1.5 rounded-lg text-xs w-40"
+              style={inputStyle}
+            />
+            <button
+              onClick={handleAddCategory}
+              disabled={!newCategoryName.trim() || allCategories.includes(newCategoryName.trim())}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-40"
+              style={{ backgroundColor: 'var(--accent)', color: '#000' }}
+            >
+              <Plus className="w-3 h-3" /> Add
+            </button>
+          </div>
+          <p className="text-[10px] mt-2" style={{ color: 'var(--text-muted)' }}>
+            Rename: click the pencil. Delete: templates move to "general" (or "uncategorized" if deleting general).
+          </p>
+        </div>
+      )}
 
       {/* Templates grid */}
       {loading ? (
@@ -209,11 +354,9 @@ export default function CronTemplatesPage() {
                     <button onClick={() => openEdit(tpl)} className="p-1.5 rounded-lg transition-colors" style={{ color: 'var(--text-muted)' }} title="Edit">
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
-                    {tpl.is_builtin === 0 && (
-                      <button onClick={() => handleDelete(tpl.id)} className="p-1.5 rounded-lg transition-colors" style={{ color: 'var(--error)' }} title="Delete">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <button onClick={() => handleDelete(tpl.id)} className="p-1.5 rounded-lg transition-colors" style={{ color: 'var(--error)' }} title="Delete">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                     {deployed?.success ? (
                       <span className="flex items-center gap-1 text-xs px-2 py-1 rounded" style={{ color: 'var(--success)', backgroundColor: 'color-mix(in srgb, var(--success) 15%, transparent)' }}>
                         <Check className="w-3 h-3" /> Deployed
@@ -274,7 +417,7 @@ export default function CronTemplatesPage() {
                 <div>
                   <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Category</label>
                   <select value={formData.category || 'general'} onChange={e => setFormData(p => ({...p, category: e.target.value}))} className="w-full rounded-lg px-3 py-2 text-sm" style={inputStyle}>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>

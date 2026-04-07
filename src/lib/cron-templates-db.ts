@@ -173,10 +173,30 @@ export function updateCronTemplate(id: string, data: Record<string, unknown>): C
 
 export function deleteCronTemplate(id: string): boolean {
   const db = getDb();
-  const tpl = db.prepare('SELECT is_builtin FROM cron_templates WHERE id = ?').get(id) as { is_builtin: number } | undefined;
+  const tpl = db.prepare('SELECT id FROM cron_templates WHERE id = ?').get(id) as { id: string } | undefined;
   if (!tpl) { db.close(); return false; }
-  if (tpl.is_builtin) { db.close(); return false; } // Can't delete builtins
   db.prepare('DELETE FROM cron_templates WHERE id = ?').run(id);
   db.close();
   return true;
+}
+
+export function renameCronCategory(oldName: string, newName: string): number {
+  const db = getDb();
+  const result = db.prepare('UPDATE cron_templates SET category = ? WHERE category = ?').run(newName, oldName);
+  db.close();
+  return result.changes;
+}
+
+export function deleteCronCategory(categoryName: string, reassignTo: string): number {
+  const db = getDb();
+  const result = db.prepare('UPDATE cron_templates SET category = ? WHERE category = ?').run(reassignTo, categoryName);
+  db.close();
+  return result.changes;
+}
+
+export function listCronCategories(): Array<{ name: string; count: number }> {
+  const db = getDb();
+  const rows = db.prepare('SELECT category as name, COUNT(*) as count FROM cron_templates GROUP BY category ORDER BY category').all() as Array<{ name: string; count: number }>;
+  db.close();
+  return rows;
 }

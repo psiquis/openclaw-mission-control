@@ -39,9 +39,11 @@ export interface CronJob {
   thinking?: string;
   lightContext?: boolean;
   tools?: string;
+  timeoutSeconds?: number;
   deliveryMode?: string;
   deliveryChannel?: string;
   deliveryTo?: string;
+  category?: string;
 }
 
 interface RunHistoryEntry {
@@ -63,13 +65,13 @@ interface CronJobCardProps {
   onDuplicate?: (job: CronJob) => void;
 }
 
-const AGENT_EMOJI: Record<string, string> = {
-  ruben: "🧠",
-  bill: "🖥️",
-  elon: "🚀",
-  quin: "⚡",
-  trump: "📢",
-  warren: "💰",
+const AGENT_COLORS: Record<string, string> = {
+  ruben: "#a78bfa",
+  bill: "#60a5fa",
+  elon: "#4ade80",
+  quin: "#facc15",
+  trump: "#fb923c",
+  warren: "#38bdf8",
 };
 
 export function CronJobCard({ job, onToggle, onEdit, onDelete, onRun, onDuplicate }: CronJobCardProps) {
@@ -155,7 +157,7 @@ export function CronJobCard({ job, onToggle, onEdit, onDelete, onRun, onDuplicat
     return "now";
   };
 
-  const agentEmoji = AGENT_EMOJI[job.agentId] || "🤖";
+  const agentColor = AGENT_COLORS[job.agentId] || "#9ca3af";
 
   const formatHistoryDate = (dateStr: string | null) => {
     if (!dateStr) return "—";
@@ -193,7 +195,17 @@ export function CronJobCard({ job, onToggle, onEdit, onDelete, onRun, onDuplicat
         <div className="flex items-start justify-between mb-2 md:mb-3 gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
-              <span title={job.agentId}>{agentEmoji}</span>
+              <span
+                className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded font-semibold uppercase tracking-wide"
+                style={{
+                  backgroundColor: `color-mix(in srgb, ${agentColor} 20%, transparent)`,
+                  color: agentColor,
+                  border: `1px solid color-mix(in srgb, ${agentColor} 30%, transparent)`,
+                }}
+                title={job.agentId}
+              >
+                {job.agentId || "system"}
+              </span>
               <h3
                 className="text-sm md:text-lg font-semibold truncate"
                 style={{
@@ -214,6 +226,18 @@ export function CronJobCard({ job, onToggle, onEdit, onDelete, onRun, onDuplicat
               >
                 {job.enabled ? "Active" : "Paused"}
               </span>
+              {/* Category badge */}
+              {job.category && (
+                <span
+                  className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full whitespace-nowrap"
+                  style={{
+                    backgroundColor: "rgba(42, 42, 42, 0.5)",
+                    color: "var(--text-muted)",
+                  }}
+                >
+                  {job.category}
+                </span>
+              )}
               {/* Payload kind badge */}
               {job.payloadKind && (
                 <span
@@ -226,7 +250,7 @@ export function CronJobCard({ job, onToggle, onEdit, onDelete, onRun, onDuplicat
                     color: job.payloadKind === "agentTurn" ? "var(--info)" : "var(--warning)",
                   }}
                 >
-                  {job.payloadKind === "agentTurn" ? "💬 Agent" : "⚙️ System"}
+                  {job.payloadKind === "agentTurn" ? "Agent" : "System"}
                 </span>
               )}
             </div>
@@ -361,7 +385,7 @@ export function CronJobCard({ job, onToggle, onEdit, onDelete, onRun, onDuplicat
             <div>
               <span style={{ color: "var(--text-muted)" }}>Agent: </span>
               <span style={{ color: "var(--text-secondary)" }}>
-                {agentEmoji} {job.agentId}
+                {job.agentId}
               </span>
             </div>
             {job.lastRun && (
