@@ -5,6 +5,7 @@ import { Clock, RefreshCw, AlertCircle, LayoutGrid, CalendarDays, Zap, Plus, Lay
 import { CronJobCard, type CronJob } from "@/components/CronJobCard";
 import { CronWeeklyTimeline } from "@/components/CronWeeklyTimeline";
 import { CronJobModal } from "@/components/CronJobModal";
+import { SystemCronSection } from "@/components/SystemCronSection";
 
 type ViewMode = "cards" | "timeline";
 
@@ -520,6 +521,9 @@ export default function CronJobsPage() {
             : `✗ Failed to trigger "${runToast.name}"`}
         </div>
       )}
+
+      {/* System Cron Jobs Section */}
+      <SystemCronSection />
 
       <style jsx global>{`
         @keyframes slideInRight {
