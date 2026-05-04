@@ -11,6 +11,7 @@
 [![SQLite](https://img.shields.io/badge/SQLite-WAL-003B57?style=flat-square&logo=sqlite)](https://sqlite.org)
 [![License](https://img.shields.io/badge/License-MIT-6366F1?style=flat-square)](LICENSE)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.4+-FF3B30?style=flat-square)](https://github.com/openclaw/openclaw)
+[![Version](https://img.shields.io/badge/version-0.3.0-22c55e?style=flat-square)](https://github.com/psiquis/openclaw-mission-control/releases/tag/v0.3.0)
 
 **Real-time fleet monitoring · Smart cron scheduling · Skill management · Full observability**
 
@@ -22,7 +23,16 @@
 
 ## ✨ What's New
 
-> **v0.2.2** — April 2026
+> **v0.3.0** — May 2026
+
+- 🖥️ **System Cron Jobs** — New section on the `/cron` page to view and manage the system crontab — add, edit, and delete entries inline with human-readable schedule descriptions
+- 🗑️ **Delete button in Cron Modal** — Delete any OpenClaw cron job directly from its edit modal, no need to go back to the list
+- 🌐 **New API** — `GET/POST/PUT/DELETE /api/cron/system` for full system crontab management
+
+<details>
+<summary>Previous releases</summary>
+
+> **v0.3.0** — April 2026
 
 - 🔧 **Smart Cron Presets** — One-click task profiles: _Script directo_, _Tarea de agente_, _Respuesta simple_, or fully custom
 - 💡 **Inline Tooltips** — Contextual `ℹ️` hints on every cron field so you never misconfigure a job
@@ -31,6 +41,8 @@
 - 📊 **Weekly Timeline** — Visual cron schedule across the week
 - 🗂️ **Cron Templates** — 8 pre-built automation templates ready to deploy
 - 🎯 **Cron Categories** — Organize jobs by type (backup, monitoring, content, etc.)
+
+</details>
 
 ---
 
@@ -130,6 +142,9 @@
 - Real-time activity feed with type filtering
 
 ### ⏰ Smart Cron Scheduling
+- **Dual cron view** — OpenClaw jobs (top) + System crontab (bottom) in a single unified page
+- **System Cron Management** — Add, edit, and delete system crontab entries directly from the UI with human-readable schedule descriptions and inline forms
+- **Delete from modal** — Remove any OpenClaw cron job directly from its edit modal
 - **Smart Presets** — Choose a task profile and let the system configure thinking, context, tools, and timeout:
 
   | Preset | Thinking | Context | Tools | Timeout | Best for |
