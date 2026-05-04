@@ -469,6 +469,7 @@ export default function CronJobsPage() {
         isOpen={showModal}
         onClose={handleModalClose}
         onSave={handleModalSave}
+        onDelete={handleDelete}
         editingJob={editingJob}
       />
 

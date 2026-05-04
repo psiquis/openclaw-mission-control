@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { X, ChevronDown, ChevronUp, Zap, Calendar, Terminal, Settings2, Blocks, Info } from "lucide-react";
+import { X, ChevronDown, ChevronUp, Zap, Calendar, Terminal, Settings2, Blocks, Info, Trash2 } from "lucide-react";
 
 // ---- InfoTip Component ----
 function InfoTip({ text }: { text: string }) {
@@ -117,6 +117,7 @@ interface CronJobModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (job: CronJob) => void;
+  onDelete?: (id: string) => void;
   editingJob?: CronJob | null;
 }
 
@@ -239,7 +240,7 @@ const sectionStyle: React.CSSProperties = {
   border: "1px solid var(--border)",
 };
 
-export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobModalProps) {
+export function CronJobModal({ isOpen, onClose, onSave, onDelete, editingJob }: CronJobModalProps) {
   // Section 1: Basic info
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -1303,7 +1304,28 @@ export function CronJobModal({ isOpen, onClose, onSave, editingJob }: CronJobMod
           )}
 
           {/* ===== Actions ===== */}
-          <div className="flex items-center justify-end gap-3 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-3 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
+            {/* Delete button — only shown when editing an existing job */}
+            {editingJob && onDelete && (
+              <button
+                type="button"
+                onClick={() => { onDelete(editingJob.id); onClose(); }}
+                style={{
+                  display: "flex", alignItems: "center", gap: "0.375rem",
+                  padding: "0.5rem 1rem", borderRadius: "0.5rem",
+                  background: "color-mix(in srgb, var(--error) 12%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--error) 30%, transparent)",
+                  color: "var(--error)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600,
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "color-mix(in srgb, var(--error) 22%, transparent)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "color-mix(in srgb, var(--error) 12%, transparent)"; }}
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </button>
+            )}
+            <div style={{ flex: 1 }} />
             <button type="button" onClick={onClose}
               style={{ padding: "0.5rem 1.25rem", borderRadius: "0.5rem", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}>
               Cancel
