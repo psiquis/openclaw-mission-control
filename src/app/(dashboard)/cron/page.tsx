@@ -119,6 +119,19 @@ export default function CronJobsPage() {
     setEditingJob(null);
   };
 
+  // Direct delete without double-confirm (used from inside the modal)
+  const handleDeleteDirect = async (id: string) => {
+    try {
+      const res = await fetch(`/api/cron?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete job");
+      setJobs((prev) => prev.filter((job) => job.id !== id));
+      setDeleteConfirm(null);
+    } catch (err) {
+      console.error("Delete error:", err);
+      setError("Failed to delete job");
+    }
+  };
+
   const activeJobs = jobs.filter((j) => j.enabled).length;
   const pausedJobs = jobs.length - activeJobs;
 
@@ -469,7 +482,7 @@ export default function CronJobsPage() {
         isOpen={showModal}
         onClose={handleModalClose}
         onSave={handleModalSave}
-        onDelete={handleDelete}
+        onDelete={handleDeleteDirect}
         editingJob={editingJob}
       />
 

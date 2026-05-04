@@ -233,13 +233,48 @@ function detectCategory(name: string, content: string): string {
 
 // ---------- Scan & Sync ----------
 
-export function scanAndSync(): SkillRecord[] {
-  const db = getDb();
-
-  const skillDirs = [
+/**
+ * Discover all skill directories to scan:
+ * 1. ~/.openclaw/skills           → source: 'custom'
+ * 2. ~/.openclaw/workspace/skills → source: 'workspace'
+ * 3. ~/.openclaw/workspace/<agent>/skills  → source: 'agent:<agent>' (only if dir exists)
+ */
+function discoverSkillDirs(): { dirPath: string; source: string; agentId?: string }[] {
+  const dirs: { dirPath: string; source: string; agentId?: string }[] = [
     { dirPath: path.join(OPENCLAW_DIR, 'skills'), source: 'custom' },
     { dirPath: path.join(OPENCLAW_DIR, 'workspace', 'skills'), source: 'workspace' },
   ];
+
+  const workspaceDir = path.join(OPENCLAW_DIR, 'workspace');
+  if (!fs.existsSync(workspaceDir)) return dirs;
+
+  // Known non-agent entries to skip
+  const SKIP = new Set(['skills', 'state', 'memory']);
+
+  try {
+    const entries = fs.readdirSync(workspaceDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.name.startsWith('.') || SKIP.has(entry.name)) continue;
+      const agentSkillsPath = path.join(workspaceDir, entry.name, 'skills');
+      if (fs.existsSync(agentSkillsPath)) {
+        // Only include if the agent actually has at least one skill folder
+        const hasSkills = fs.readdirSync(agentSkillsPath).some(f => {
+          try { return fs.statSync(path.join(agentSkillsPath, f)).isDirectory(); } catch { return false; }
+        });
+        if (hasSkills) {
+          dirs.push({ dirPath: agentSkillsPath, source: `agent:${entry.name}`, agentId: entry.name });
+        }
+      }
+    }
+  } catch { /* skip unreadable workspace */ }
+
+  return dirs;
+}
+
+export function scanAndSync(): SkillRecord[] {
+  const db = getDb();
+
+  const skillDirs = discoverSkillDirs();
 
   const upsert = db.prepare(`
     INSERT INTO skills (id, name, description, location, source, category, risk_level, risk_reasons,
@@ -254,10 +289,14 @@ export function scanAndSync(): SkillRecord[] {
       updated_at=datetime('now')
   `);
 
+  const upsertAgent = db.prepare(
+    'INSERT OR IGNORE INTO skill_agents (skill_id, agent_id) VALUES (?, ?)'
+  );
+
   const foundIds: string[] = [];
 
   const transaction = db.transaction(() => {
-    for (const { dirPath, source } of skillDirs) {
+    for (const { dirPath, source, agentId } of skillDirs) {
       if (!fs.existsSync(dirPath)) continue;
       let entries: fs.Dirent[];
       try { entries = fs.readdirSync(dirPath, { withFileTypes: true }); } catch { continue; }
@@ -275,8 +314,11 @@ export function scanAndSync(): SkillRecord[] {
         const sizeBytes = dirSizeBytes(skillPath);
         const category = detectCategory(entry.name, skill.description);
 
+        // Use source-scoped ID to avoid collisions between agents with same skill name
+        const skillId = agentId ? `${agentId}:${entry.name}` : entry.name;
+
         upsert.run({
-          id: entry.name,
+          id: skillId,
           name: skill.name,
           description: skill.description,
           location: skillPath,
@@ -291,7 +333,12 @@ export function scanAndSync(): SkillRecord[] {
           size_bytes: sizeBytes,
         });
 
-        foundIds.push(entry.name);
+        // Auto-assign agent to skill if scanned from agent workspace
+        if (agentId) {
+          upsertAgent.run(skillId, agentId);
+        }
+
+        foundIds.push(skillId);
       }
     }
   });

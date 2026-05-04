@@ -307,7 +307,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Job ID is required" }, { status: 400 });
     }
 
-    execSync(`openclaw cron remove ${id} 2>/dev/null`, {
+    execSync(`openclaw cron rm ${id} 2>/dev/null`, {
       timeout: 10000,
       encoding: "utf-8",
     });

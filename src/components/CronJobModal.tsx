@@ -1305,7 +1305,6 @@ export function CronJobModal({ isOpen, onClose, onSave, onDelete, editingJob }: 
 
           {/* ===== Actions ===== */}
           <div className="flex items-center gap-3 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
-            {/* Delete button — only shown when editing an existing job */}
             {editingJob && onDelete && (
               <button
                 type="button"

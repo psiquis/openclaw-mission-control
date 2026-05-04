@@ -26,6 +26,9 @@ export default function SkillCard({ skill, onClick }: SkillCardProps) {
   const desc = skill.description || 'No description';
   const truncDesc = desc.length > 140 ? desc.slice(0, 140) + '…' : desc;
   const agents = skill.agents || [];
+  // Also derive agent from source field (format: 'agent:agentId')
+  const sourceAgent = skill.source?.startsWith('agent:') ? skill.source.replace('agent:', '') : null;
+  const allAgents = sourceAgent && !agents.includes(sourceAgent) ? [sourceAgent, ...agents] : agents;
 
   return (
     <div
@@ -60,13 +63,13 @@ export default function SkillCard({ skill, onClick }: SkillCardProps) {
           <CategoryBadge category={skill.category} />
           <RiskBadge level={skill.risk_level} />
           {skill.has_exec === 1 && <ExecBadge />}
-          {agents.length > 0 && (
+          {allAgents.length > 0 && (
             <span
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
               style={{ color: 'var(--info)', backgroundColor: 'color-mix(in srgb, var(--info) 15%, transparent)' }}
             >
               <Users className="w-3 h-3" />
-              {agents.join(', ')}
+              {allAgents.join(', ')}
             </span>
           )}
         </div>

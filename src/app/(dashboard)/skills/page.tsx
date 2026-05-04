@@ -40,6 +40,7 @@ export default function SkillsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterRisk, setFilterRisk] = useState<string>('all');
+  const [filterAgent, setFilterAgent] = useState<string>('all');
 
   const fetchSkills = useCallback(async () => {
     try {
@@ -76,11 +77,25 @@ export default function SkillsPage() {
 
   const categories = Array.from(new Set(skills.map(s => s.category))).sort();
 
+  // Extract unique agent IDs from source field (format: 'agent:agentId')
+  const agentIds = Array.from(new Set(
+    skills
+      .filter(s => s.source.startsWith('agent:'))
+      .map(s => s.source.replace('agent:', ''))
+  )).sort();
+
   const filtered = skills.filter(s => {
     if (searchQuery && !s.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
         !(s.description || '').toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (filterCategory !== 'all' && s.category !== filterCategory) return false;
     if (filterRisk !== 'all' && s.risk_level !== filterRisk) return false;
+    if (filterAgent !== 'all') {
+      if (filterAgent === 'global') {
+        if (s.source.startsWith('agent:')) return false;
+      } else {
+        if (s.source !== `agent:${filterAgent}`) return false;
+      }
+    }
     return true;
   });
 
@@ -118,6 +133,26 @@ export default function SkillsPage() {
           </button>
         </div>
       </div>
+
+      {/* Agent filter tabs — only show if there are agent skills */}
+      {agentIds.length > 0 && (
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          {['all', 'global', ...agentIds].map(agent => (
+            <button
+              key={agent}
+              onClick={() => setFilterAgent(agent)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              style={{
+                backgroundColor: filterAgent === agent ? 'var(--accent)' : 'var(--surface)',
+                color: filterAgent === agent ? '#fff' : 'var(--text-secondary)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              {agent === 'all' ? 'All' : agent === 'global' ? 'Global' : agent}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Stats */}
       {stats && (
