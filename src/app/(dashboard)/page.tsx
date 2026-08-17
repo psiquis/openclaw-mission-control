@@ -115,6 +115,7 @@ export default function DashboardPage() {
       if (dev) setPendingDevices(dev.pending || []);
       if (gw) setGwHealth(gw);
       if (sec) setSecSummary(sec.summary || null);
+      fetch("/api/commitments").then((r) => r.json()).then((c) => setCommitments(c.commitments || [])).catch(() => {});
     } catch { /* gateway no disponible */ }
   };
 
@@ -124,6 +125,9 @@ export default function DashboardPage() {
     return () => clearInterval(iv);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  interface Commitment { id?: string; summary?: string; text?: string; suggestion?: string; dueAt?: number; agentId?: string }
+  const [commitments, setCommitments] = useState<Commitment[]>([]);
 
   const handleDevice = async (requestId: string, action: "approve" | "reject") => {
     setDeviceBusy(requestId);
@@ -538,6 +542,26 @@ export default function DashboardPage() {
                 <span className="truncate" style={{ color: "var(--text-secondary)" }}>{a.text}</span>
               </Link>
             ))}
+            {commitments.length > 0 && (
+              <div style={{ borderTop: "1px solid var(--border)", marginTop: 8, paddingTop: 8 }}>
+                <div className="text-[11px] font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Seguimientos inferidos</div>
+                {commitments.slice(0, 4).map((c, i) => (
+                  <div key={c.id || i} className="flex items-start gap-2 p-2 rounded-md text-xs mb-1" style={{ backgroundColor: "var(--card-elevated)" }}>
+                    <span className="w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0" style={{ backgroundColor: "var(--accent-fg)" }} />
+                    <span style={{ color: "var(--text-secondary)", flex: 1 }}>{c.summary || c.suggestion || c.text || c.id}</span>
+                    {c.id && (
+                      <button
+                        onClick={async () => { await fetch("/api/commitments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c.id }) }); setCommitments((prev) => prev.filter((x) => x.id !== c.id)); }}
+                        style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", fontSize: 11 }}
+                        aria-label="Descartar seguimiento"
+                      >
+                        descartar
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

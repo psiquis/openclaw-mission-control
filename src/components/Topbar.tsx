@@ -4,6 +4,8 @@ import { usePathname } from "next/navigation";
 import { Search } from "lucide-react";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { CommandPalette } from "@/components/CommandPalette";
+import { AgentChatPanel } from "@/components/AgentChatPanel";
+import { useEffect, useState } from "react";
 
 const LABELS: Record<string, string> = {
   "": "Dashboard",
@@ -32,6 +34,16 @@ const LABELS: Record<string, string> = {
 
 export function Topbar() {
   const pathname = usePathname() || "/";
+  const [chatAgent, setChatAgent] = useState<{ id: string; name: string } | null>(null);
+
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (d?.id) setChatAgent({ id: d.id, name: d.name || d.id });
+    };
+    window.addEventListener("open-agent-chat", onOpen);
+    return () => window.removeEventListener("open-agent-chat", onOpen);
+  }, []);
   const segments = pathname.split("/").filter(Boolean);
   const primary = segments[0] ?? "";
   const label = LABELS[primary] ?? primary;
@@ -62,6 +74,9 @@ export function Topbar() {
       </button>
       <NotificationDropdown />
       <CommandPalette />
+      {chatAgent && (
+        <AgentChatPanel agentId={chatAgent.id} agentName={chatAgent.name} onClose={() => setChatAgent(null)} />
+      )}
     </header>
   );
 }

@@ -5,6 +5,7 @@ import { Eye, Edit3, RefreshCw, Brain } from "lucide-react";
 import { FileTree, FileNode } from "@/components/FileTree";
 import { MarkdownEditor } from "@/components/MarkdownEditor";
 import { MarkdownPreview } from "@/components/MarkdownPreview";
+import { DreamsPanel } from "@/components/DreamsPanel";
 
 type ViewMode = "edit" | "preview";
 
@@ -141,6 +142,8 @@ export default function MemoryPage() {
           Ver y editar archivos de memoria de los agentes
         </p>
       </div>
+
+      <DreamsPanel />
 
       {/* Two-column layout */}
       <div

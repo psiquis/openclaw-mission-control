@@ -22,6 +22,7 @@ interface RawSession {
   outputTokens?: number;
   totalTokens?: number;
   totalTokensFresh?: boolean;
+  sessionFile?: string;
   model?: string;
   modelProvider?: string;
   contextTokens?: number;
@@ -116,10 +117,45 @@ export async function GET(request: NextRequest) {
   return listSessions();
 }
 
+
+// --- Computo de tokens desde el transcript JSONL (el store del gateway los deja a null) ---
+import { statSync } from 'fs';
+
+interface TokenSum { input: number; output: number; total: number; cost: number }
+const tokenCache = new Map<string, { mtimeMs: number; sum: TokenSum }>();
+
+function computeTokensFromJsonl(sessionFile?: string): TokenSum | null {
+  if (!sessionFile || !existsSync(sessionFile)) return null;
+  try {
+    const mtimeMs = statSync(sessionFile).mtimeMs;
+    const cached = tokenCache.get(sessionFile);
+    if (cached && cached.mtimeMs === mtimeMs) return cached.sum;
+    const sum: TokenSum = { input: 0, output: 0, total: 0, cost: 0 };
+    const raw = readFileSync(sessionFile, 'utf-8');
+    for (const line of raw.split('\n')) {
+      if (!line.includes('"usage"')) continue;
+      try {
+        const obj = JSON.parse(line);
+        const u = obj?.message?.usage;
+        if (u) {
+          sum.input += u.input || 0;
+          sum.output += u.output || 0;
+          sum.total += u.totalTokens || (u.input || 0) + (u.output || 0);
+          sum.cost += u.cost?.total || 0;
+        }
+      } catch { /* linea corrupta */ }
+    }
+    tokenCache.set(sessionFile, { mtimeMs, sum });
+    return sum;
+  } catch {
+    return null;
+  }
+}
+
 async function listSessions(): Promise<NextResponse> {
   try {
-    const output = execSync('openclaw sessions list --json 2>/dev/null', {
-      timeout: 10000,
+    const output = execSync('openclaw sessions list --all-agents --limit 200 --json 2>/dev/null', {
+      timeout: 20000,
       encoding: 'utf-8',
     });
 
@@ -133,11 +169,23 @@ async function listSessions(): Promise<NextResponse> {
         // Skip run-entry duplicates and unknown types
         if (parsed.isRunEntry || parsed.type === 'unknown') return acc;
 
-        const totalTokens = raw.totalTokens || 0;
+        let totalTokens = raw.totalTokens || 0;
+        let computedInput = raw.inputTokens || 0;
+        let computedOutput = raw.outputTokens || 0;
+        let fresh = !!raw.totalTokensFresh;
+        if (!totalTokens && acc.length < 60) {
+          const sum = computeTokensFromJsonl(raw.sessionFile);
+          if (sum && sum.total > 0) {
+            totalTokens = sum.total;
+            computedInput = sum.input;
+            computedOutput = sum.output;
+            fresh = true;
+          }
+        }
         const contextTokens = raw.contextTokens || 0;
         const contextUsedPercent =
-          contextTokens > 0 && raw.totalTokensFresh
-            ? Math.round((totalTokens / contextTokens) * 100)
+          contextTokens > 0 && fresh && totalTokens > 0
+            ? Math.min(100, Math.round((totalTokens / contextTokens) * 100))
             : null;
 
         acc.push({
@@ -153,8 +201,8 @@ async function listSessions(): Promise<NextResponse> {
           ageMs: raw.ageMs,
           model: raw.model || 'unknown',
           modelProvider: raw.modelProvider || 'anthropic',
-          inputTokens: raw.inputTokens || 0,
-          outputTokens: raw.outputTokens || 0,
+          inputTokens: computedInput,
+          outputTokens: computedOutput,
           totalTokens,
           contextTokens,
           contextUsedPercent,

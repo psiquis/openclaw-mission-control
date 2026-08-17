@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { AgentOrganigrama } from "@/components/AgentOrganigrama";
 import { AgentChatPanel } from "@/components/AgentChatPanel";
+import { HeartbeatCard } from "@/components/HeartbeatCard";
 
 interface Agent {
   id: string;
@@ -142,6 +143,8 @@ export default function AgentsPage() {
           </button>
         ))}
       </div>
+
+      <HeartbeatCard />
 
       {/* Organigrama View */}
       {activeTab === "organigrama" && (

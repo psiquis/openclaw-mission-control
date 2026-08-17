@@ -13,7 +13,8 @@ interface PageCmd { kind: "page"; label: string; href: string; icon: React.Compo
 interface CronCmd { kind: "cron"; label: string; id: string }
 interface ActionCmd { kind: "action"; label: string; id: string; dangerous?: boolean }
 interface SearchCmd { kind: "result"; label: string; snippet: string; href: string }
-type Cmd = PageCmd | CronCmd | ActionCmd | SearchCmd;
+interface ChatCmd { kind: "chat"; label: string; id: string; name: string }
+type Cmd = PageCmd | CronCmd | ActionCmd | SearchCmd | ChatCmd;
 
 const PAGES: PageCmd[] = [
   { kind: "page", label: "Dashboard", href: "/", icon: Gauge, keywords: "inicio home panel" },
@@ -54,6 +55,7 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const [sel, setSel] = useState(0);
   const [crons, setCrons] = useState<CronCmd[]>([]);
+  const [chatCmds, setChatCmds] = useState<ChatCmd[]>([]);
   const [searchResults, setSearchResults] = useState<SearchCmd[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -81,6 +83,13 @@ export function CommandPalette() {
   useEffect(() => {
     if (!open) { setQuery(""); setSel(0); setNotice(null); return; }
     setTimeout(() => inputRef.current?.focus(), 30);
+    fetch("/api/agents")
+      .then((r) => r.json())
+      .then((d) => {
+        const list = d.agents || [];
+        setChatCmds(list.map((a: { id: string; name: string }) => ({ kind: "chat" as const, id: a.id, name: a.name, label: `Hablar con ${a.name}` })));
+      })
+      .catch(() => {});
     fetch("/api/cron")
       .then((r) => r.json())
       .then((jobs) => {
@@ -117,10 +126,16 @@ export function CommandPalette() {
   const actionCmds = QUICK_ACTIONS.filter((a) => !q || norm(a.label).includes(q));
   const pageItems = pages.slice(0, q ? 6 : 8);
   const actItems = actionCmds.slice(0, q ? 5 : 3);
-  const flat: Cmd[] = [...pageItems, ...cronCmds, ...actItems, ...searchResults];
+  const chatItems = chatCmds.filter((c) => !q || norm(c.label).includes(q)).slice(0, q ? 6 : 3);
+  const flat: Cmd[] = [...pageItems, ...chatItems, ...cronCmds, ...actItems, ...searchResults];
   const selIdx = Math.min(sel, Math.max(flat.length - 1, 0));
 
   const run = useCallback(async (cmd: Cmd) => {
+    if (cmd.kind === "chat") {
+      setOpen(false);
+      window.dispatchEvent(new CustomEvent("open-agent-chat", { detail: { id: cmd.id, name: cmd.name } }));
+      return;
+    }
     if (cmd.kind === "page" || cmd.kind === "result") { setOpen(false); router.push(cmd.href); return; }
     if (cmd.kind === "cron") {
       setBusy(cmd.id);
@@ -154,6 +169,7 @@ export function CommandPalette() {
   const sections: Array<{ title: string; items: Cmd[]; offset: number }> = [];
   let off = 0;
   if (pageItems.length) { sections.push({ title: "Ir a", items: pageItems, offset: off }); off += pageItems.length; }
+  if (chatItems.length) { sections.push({ title: "Agentes — hablar", items: chatItems, offset: off }); off += chatItems.length; }
   if (cronCmds.length) { sections.push({ title: "Cron jobs — ejecutar ahora", items: cronCmds, offset: off }); off += cronCmds.length; }
   if (actItems.length) { sections.push({ title: "Quick actions", items: actItems, offset: off }); off += actItems.length; }
   if (searchResults.length) { sections.push({ title: "Resultados", items: searchResults, offset: off }); }
@@ -201,6 +217,7 @@ export function CommandPalette() {
                     {cmd.kind === "page" && <cmd.icon style={{ width: 14, height: 14, color: "var(--text-muted)", flexShrink: 0 }} />}
                     {cmd.kind === "cron" && (isBusy ? <Loader2 className="animate-spin" style={{ width: 14, height: 14, color: "var(--accent-fg)" }} /> : <Play style={{ width: 14, height: 14, color: "var(--text-muted)", flexShrink: 0 }} />)}
                     {cmd.kind === "action" && (isBusy ? <Loader2 className="animate-spin" style={{ width: 14, height: 14, color: "var(--accent-fg)" }} /> : <Bolt style={{ width: 14, height: 14, color: cmd.dangerous ? "var(--warning)" : "var(--text-muted)", flexShrink: 0 }} />)}
+                    {cmd.kind === "chat" && <Bot style={{ width: 14, height: 14, color: "var(--accent-fg)", flexShrink: 0 }} />}
                     {cmd.kind === "result" && <FileText style={{ width: 14, height: 14, color: "var(--text-muted)", flexShrink: 0 }} />}
                     <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cmd.label}</span>
                     {cmd.kind === "result" && <span style={{ fontSize: 11, color: "var(--text-muted)", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(cmd as SearchCmd).snippet}</span>}
