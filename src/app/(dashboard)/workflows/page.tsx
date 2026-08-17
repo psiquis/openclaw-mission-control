@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Loader2, Play, Pencil, History, Workflow as WorkflowIcon, ExternalLink, Zap } from "lucide-react";
+import { Loader2, Play, Pencil, History, Zap } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -29,13 +29,6 @@ interface GwTask {
   agentId?: string;
 }
 
-interface N8nWf {
-  id: string;
-  name: string;
-  active: boolean;
-  updatedAt?: string;
-}
-
 const STATUS_COLOR: Record<string, string> = {
   running: "var(--info)",
   queued: "var(--warning)",
@@ -48,17 +41,15 @@ const STATUS_COLOR: Record<string, string> = {
 export default function WorkflowsPage() {
   const [jobs, setJobs] = useState<CronJob[]>([]);
   const [lastRuns, setLastRuns] = useState<Record<string, GwTask>>({});
-  const [n8n, setN8n] = useState<{ connected: boolean; workflows?: N8nWf[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [cronRes, tasksRes, n8nRes] = await Promise.all([
+      const [cronRes, tasksRes] = await Promise.all([
         fetch("/api/cron").then((r) => r.json()).catch(() => []),
         fetch("/api/tasks").then((r) => r.json()).catch(() => ({ tasks: [] })),
-        fetch("/api/n8n").then((r) => r.json()).catch(() => null),
       ]);
       if (Array.isArray(cronRes)) setJobs(cronRes);
       const bySource: Record<string, GwTask> = {};
@@ -66,7 +57,6 @@ export default function WorkflowsPage() {
         if (t.sourceId && !bySource[t.sourceId]) bySource[t.sourceId] = t;
       }
       setLastRuns(bySource);
-      if (n8nRes) setN8n(n8nRes);
     } finally {
       setLoading(false);
     }
@@ -96,6 +86,7 @@ export default function WorkflowsPage() {
 
   const active = jobs.filter((j) => j.enabled).length;
   const failing = Object.values(lastRuns).filter((t) => ["failed", "timed_out"].includes(t.status)).length;
+  const withHistory = jobs.filter((j) => lastRuns[j.id]).length;
 
   return (
     <div className="p-4 md:p-8">
@@ -108,7 +99,7 @@ export default function WorkflowsPage() {
       <div className="mb-6">
         <h1 style={{ color: "var(--text-primary)" }}>Automatizaciones</h1>
         <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-          Todo lo que corre solo en delorian: tareas programadas de OpenClaw y flujos de n8n
+          Tareas programadas de OpenClaw que corren en delorian
         </p>
       </div>
 
@@ -126,7 +117,7 @@ export default function WorkflowsPage() {
               { label: "Cron jobs", value: jobs.length },
               { label: "Activos", value: active },
               { label: "Con fallos recientes", value: failing, warn: failing > 0 },
-              { label: "Flujos n8n", value: n8n?.connected ? (n8n.workflows || []).length : "—" },
+              { label: "Con historial", value: withHistory },
             ].map((s) => (
               <div key={s.label} className="rounded-lg p-4" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
                 <div className="text-[11.5px] font-medium mb-1" style={{ color: "var(--text-muted)" }}>{s.label}</div>
@@ -188,49 +179,6 @@ export default function WorkflowsPage() {
                 </div>
               );
             })}
-          </div>
-
-          {/* n8n */}
-          <div className="rounded-lg overflow-hidden" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
-              <WorkflowIcon className="w-4 h-4" style={{ color: "var(--text-muted)" }} />
-              <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Flujos de n8n</h2>
-              <a
-                href="https://delorian.tailb22f88.ts.net:8443"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-auto text-xs flex items-center gap-1"
-                style={{ color: "var(--text-muted)" }}
-              >
-                Abrir n8n <ExternalLink className="w-3 h-3" />
-              </a>
-            </div>
-            {n8n?.connected ? (
-              <div className="p-3 space-y-1">
-                {(n8n.workflows || []).map((w) => (
-                  <div key={w.id} className="flex items-center gap-3 p-2 rounded-md text-xs" style={{ backgroundColor: "var(--card-elevated)" }}>
-                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: w.active ? "var(--positive)" : "var(--text-muted)" }} />
-                    <span style={{ color: "var(--text-primary)", flex: 1 }}>{w.name}</span>
-                    <span style={{ color: "var(--text-muted)" }}>{w.active ? "activo" : "inactivo"}</span>
-                    {w.updatedAt && (
-                      <span style={{ color: "var(--text-muted)" }}>
-                        {formatDistanceToNow(new Date(w.updatedAt), { addSuffix: true, locale: es })}
-                      </span>
-                    )}
-                  </div>
-                ))}
-                {(n8n.workflows || []).length === 0 && (
-                  <div className="p-4 text-center text-xs" style={{ color: "var(--text-muted)" }}>Sin flujos en n8n</div>
-                )}
-              </div>
-            ) : (
-              <div className="p-4 text-xs" style={{ color: "var(--text-secondary)", lineHeight: 1.7 }}>
-                n8n corre en este servidor pero el panel aún no tiene acceso a su API.
-                Para conectarlo: en n8n abre <span className="font-mono">Settings → n8n API</span>, crea una API key,
-                y añádela como <span className="font-mono">N8N_API_KEY</span> al entorno de mission-control
-                (p. ej. en el ecosystem de pm2). Mientras tanto puedes abrir n8n directamente con el enlace de arriba.
-              </div>
-            )}
           </div>
         </>
       )}
