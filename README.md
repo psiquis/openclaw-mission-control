@@ -4,16 +4,18 @@
 
 # Mission Control
 
-### Command center for OpenClaw AI agent fleets
+### The command center for your OpenClaw AI agent fleet
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-000?style=flat-square&logo=next.js)](https://nextjs.org)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000?style=flat-square&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org)
+[![Tailwind](https://img.shields.io/badge/Tailwind-4-38BDF8?style=flat-square&logo=tailwindcss)](https://tailwindcss.com)
 [![SQLite](https://img.shields.io/badge/SQLite-WAL-003B57?style=flat-square&logo=sqlite)](https://sqlite.org)
 [![License](https://img.shields.io/badge/License-MIT-6366F1?style=flat-square)](LICENSE)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.4+-FF3B30?style=flat-square)](https://github.com/openclaw/openclaw)
-[![Version](https://img.shields.io/badge/version-0.3.0-22c55e?style=flat-square)](https://github.com/psiquis/openclaw-mission-control/releases/tag/v0.3.0)
+[![Version](https://img.shields.io/badge/version-0.4.0-22c55e?style=flat-square)](https://github.com/psiquis/openclaw-mission-control/releases)
 
-**Real-time fleet monitoring · Smart cron scheduling · Skill management · Full observability**
+**One dashboard for every agent, cron job, skill, and gateway you run with [OpenClaw](https://github.com/openclaw/openclaw).**
+Real gateway telemetry · Built-in security audits · Smart cron scheduling · Full observability — self-hosted, no SaaS, your data never leaves your box.
 
 [Quick Start](#-quick-start) · [Features](#-features) · [Screenshots](#-screenshots) · [Architecture](#-architecture) · [Contributing](#-contributing)
 
@@ -21,16 +23,34 @@
 
 ---
 
+## Why Mission Control?
+
+If you run [OpenClaw](https://github.com/openclaw/openclaw) agents on a server, VPS, or homelab box, you already know the pain: checking whether the gateway is alive means SSH-ing in and grepping `journalctl`, checking cron jobs means opening `openclaw.json` by hand, and there's no single place to see what your agents are actually doing right now.
+
+Mission Control is a self-hosted Next.js dashboard that sits on top of the OpenClaw CLI and gateway and gives you all of that in a browser tab — on desktop or your phone. No cloud account, no telemetry, no vendor lock-in: it's your server, your agents, your data.
+
+---
+
 ## ✨ What's New
+
+> **v0.4.0** — August 2026 — *the "pro-minimal" redesign*
+
+- 🎨 **Full visual redesign** — a calmer, denser, pro-minimal UI built on CSS custom properties, consistent across every page
+- 🩺 **Real gateway telemetry** — Settings and System pages now read live data straight from `openclaw status --json`: gateway reachability, PID, restarts, latency, active model, and agent identity — zero hardcoded/placeholder values
+- 🔐 **Built-in Security Audit card** — surfaces `openclaw security audit --json` findings (critical/warn/info) with remediation hints, right on the Settings page
+- ⚡ **Working Quick Actions** — restart the gateway or tail its logs from the UI, backed by real systemd calls (correctly scoped between `--user` and system-wide services)
+- 🧵 **Workflows / Automations page** — a single, OpenClaw-only view of every scheduled task, no other automation engine required
+- 🔑 **Fixed password change flow** — now actually persists and restarts the app for you
+- 🌍 **Fully brandable** — every user-facing label (agent name, company, hostname breadcrumb) comes from `.env.local`, nothing is hardcoded to a specific deployment anymore
+
+<details>
+<summary>Previous releases</summary>
 
 > **v0.3.0** — May 2026
 
 - 🖥️ **System Cron Jobs** — New section on the `/cron` page to view and manage the system crontab — add, edit, and delete entries inline with human-readable schedule descriptions
 - 🗑️ **Delete button in Cron Modal** — Delete any OpenClaw cron job directly from its edit modal, no need to go back to the list
 - 🌐 **New API** — `GET/POST/PUT/DELETE /api/cron/system` for full system crontab management
-
-<details>
-<summary>Previous releases</summary>
 
 > **v0.3.0** — April 2026
 
@@ -53,63 +73,47 @@
 <td width="50%">
 
 **Dashboard — Fleet Overview**
-![Dashboard](docs/screenshots/dashboard.png)
-*Real-time agent status, activity feed, weather, system metrics, and quick links*
+![Dashboard](docs/screenshots/dashboard.jpg)
+*Real-time agent status, activity feed, weather, and system metrics*
 
 </td>
 <td width="50%">
 
+**Settings — Live Gateway & Security**
+![Settings](docs/screenshots/settings.jpg)
+*Real gateway health, active model, security audit findings, and working quick actions*
+
+</td>
+</tr>
+<tr>
+<td>
+
+**Workflows — OpenClaw Automations**
+![Workflows](docs/screenshots/workflows.jpg)
+*Every scheduled task in one place — OpenClaw only, no extra moving parts*
+
+</td>
+<td>
+
+**System Monitor**
+![System](docs/screenshots/system.jpg)
+*CPU, RAM, disk, and per-service status with start/stop/restart/logs*
+
+</td>
+</tr>
+<tr>
+<td>
+
 **Agent Fleet**
-![Agents](docs/screenshots/agents.png)
+![Agents](docs/screenshots/agents.jpg)
 *Multi-agent overview with models, status, and configuration*
 
 </td>
-</tr>
-<tr>
-<td>
-
-**Cron Scheduler**
-![Cron](docs/screenshots/cron.png)
-*Full cron management with smart presets, tooltips, and visual timeline*
-
-</td>
-<td>
-
-**Cron Templates**
-![Cron Templates](docs/screenshots/cron-templates.png)
-*Pre-built automation templates — deploy with one click*
-
-</td>
-</tr>
-<tr>
 <td>
 
 **Skill Registry**
-![Skills](docs/screenshots/skills.png)
+![Skills](docs/screenshots/skills.jpg)
 *SQLite-backed inventory with risk assessment and category detection*
-
-</td>
-<td>
-
-**Skill Templates**
-![Skill Templates](docs/screenshots/skill-templates.png)
-*Guided wizard for creating standardized skills*
-
-</td>
-</tr>
-<tr>
-<td>
-
-**Session History**
-![Sessions](docs/screenshots/sessions.png)
-*Browse all agent sessions with token tracking and filters*
-
-</td>
-<td>
-
-**File Browser**
-![Files](docs/screenshots/files.png)
-*Navigate and edit workspace files with Monaco editor*
 
 </td>
 </tr>
@@ -117,15 +121,24 @@
 <td>
 
 **Memory Search**
-![Memory](docs/screenshots/memory.png)
+![Memory](docs/screenshots/memory.jpg)
 *Semantic search across agent memory databases*
 
 </td>
 <td>
 
-**Activity Feed**
-![Activity](docs/screenshots/cron.png)
-*Real-time activity stream with agent filtering and status tracking*
+**File Browser**
+![Files](docs/screenshots/files.jpg)
+*Navigate and edit workspace files with Monaco editor*
+
+</td>
+</tr>
+<tr>
+<td colspan="2">
+
+**Cron Scheduler**
+![Cron](docs/screenshots/cron.jpg)
+*Full cron management with smart presets, tooltips, and a visual weekly timeline*
 
 </td>
 </tr>
@@ -135,16 +148,22 @@
 
 ## 🚀 Features
 
+### 🩺 Live Gateway & Security
+- Real-time gateway health straight from the OpenClaw CLI — reachability, PID, restarts, latency, version
+- Active model and agent identity, no hardcoded placeholders
+- **Security Audit card** — critical/warn/info findings from `openclaw security audit`, with remediation hints
+- One-click gateway restart and log viewer, wired to the correct systemd scope (`--user` vs system-wide)
+
 ### 🤖 Agent Fleet Management
 - Live status dashboard with model info and connection state
 - Per-agent workspace browsing and memory search
 - Agent organigram visualization
 - Real-time activity feed with type filtering
 
-### ⏰ Smart Cron Scheduling
+### ⏰ Smart Cron & Workflows
+- **Workflows page** — every OpenClaw scheduled task in one unified, OpenClaw-only view
 - **Dual cron view** — OpenClaw jobs (top) + System crontab (bottom) in a single unified page
-- **System Cron Management** — Add, edit, and delete system crontab entries directly from the UI with human-readable schedule descriptions and inline forms
-- **Delete from modal** — Remove any OpenClaw cron job directly from its edit modal
+- **System Cron Management** — Add, edit, and delete system crontab entries directly from the UI
 - **Smart Presets** — Choose a task profile and let the system configure thinking, context, tools, and timeout:
 
   | Preset | Thinking | Context | Tools | Timeout | Best for |
@@ -160,7 +179,6 @@
 - **Weekly Timeline** — See all jobs plotted across the week
 - **Templates** — 8 pre-built templates (backups, health checks, cleanups, reporting)
 - **Run Now** — Instantly trigger any job from the dashboard
-- **Category System** — Organize jobs by type
 
 ### 🧩 Skill Operating System
 - **Skill Registry** — SQLite-backed with automatic risk assessment and category detection
@@ -169,7 +187,7 @@
 - **Risk Assessment** — Detects `sudo`, `rm -rf`, elevated commands, and secrets
 
 ### 📊 Observability
-- Real-time CPU, RAM, disk, and service monitoring
+- Real-time CPU, RAM, disk, and per-service monitoring (PM2 + systemd, both user and system scope)
 - Session history with token usage tracking
 - Activity heatmaps and usage analytics
 - Live log streaming
@@ -190,7 +208,7 @@
 ### Prerequisites
 
 - [Node.js](https://nodejs.org) 22+
-- [OpenClaw](https://github.com/openclaw/openclaw) installed and running
+- [OpenClaw](https://github.com/openclaw/openclaw) installed and running (Mission Control shells out to the `openclaw` CLI — it doesn't replace it)
 - Linux/macOS (tested on Ubuntu 24.04, Raspberry Pi OS)
 
 ### Install
@@ -213,8 +231,9 @@ ADMIN_PASSWORD=your-secure-password
 AUTH_SECRET=$(openssl rand -base64 32)
 OPENCLAW_DIR=/home/your-user/.openclaw
 
-# Optional — Branding
+# Optional — Branding (shown across the whole UI, including the breadcrumb)
 NEXT_PUBLIC_AGENT_NAME=Mission Control
+NEXT_PUBLIC_APP_TITLE=Mission Control
 NEXT_PUBLIC_COMPANY_NAME=Your Company
 ```
 
@@ -259,10 +278,12 @@ mission-control/
 │   ├── app/                    # Next.js App Router
 │   │   ├── (dashboard)/        # Dashboard pages
 │   │   │   ├── cron/           # Cron jobs + templates
+│   │   │   ├── workflows/      # OpenClaw automations overview
 │   │   │   ├── skills/         # Skill management
 │   │   │   ├── agents/         # Agent fleet
 │   │   │   ├── sessions/       # Session history
 │   │   │   ├── system/         # System monitoring
+│   │   │   ├── settings/       # Gateway health, security audit, quick actions
 │   │   │   ├── files/          # File browser
 │   │   │   ├── memory/         # Memory search
 │   │   │   ├── costs/          # Cost analytics
@@ -273,14 +294,14 @@ mission-control/
 │   └── lib/                    # Business logic + DB
 ├── data/                       # SQLite databases (auto-created)
 ├── public/                     # Static assets
-└── docs/                       # Documentation
+└── docs/                       # Documentation + screenshots
 ```
 
 ### Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 15 (App Router, Turbopack) |
+| Framework | Next.js 16 (App Router, Turbopack) |
 | Language | TypeScript 5 |
 | Styling | Tailwind CSS 4 + CSS Variables |
 | Database | SQLite via better-sqlite3 (WAL mode) |
@@ -295,10 +316,11 @@ mission-control/
 Browser  ←→  Next.js API Routes  ←→  OpenClaw CLI / SQLite / Filesystem
                                             ↓
                                    OpenClaw Gateway
-                                   (agents, cron, sessions, models)
+                        (agents, cron, sessions, models, security audit)
 ```
 
-Mission Control reads/writes:
+Mission Control never talks to the gateway's WebSocket directly for admin actions — it shells out to the `openclaw` CLI (`status`, `security audit`, `config get/patch`) using `execFile`, and manages services through `systemctl`/`pm2`, scoped correctly between per-user and system-wide units. It reads/writes:
+
 | Path | Purpose |
 |------|---------|
 | `~/.openclaw/openclaw.json` | Agent and model configuration |
@@ -340,7 +362,7 @@ Override CSS variables in `src/app/globals.css`:
 
 ## 🤝 Contributing
 
-Contributions welcome. Open an issue first to discuss changes.
+Contributions welcome — bug reports, feature ideas, and PRs alike. Open an issue first for anything non-trivial so we can discuss the approach.
 
 ```bash
 git clone https://github.com/psiquis/openclaw-mission-control.git
@@ -348,6 +370,8 @@ cd openclaw-mission-control
 npm install
 npm run dev    # http://localhost:3000
 ```
+
+If Mission Control is useful to you, consider giving the repo a ⭐ — it helps other OpenClaw users find it.
 
 ---
 
@@ -359,7 +383,7 @@ MIT — see [LICENSE](LICENSE).
 
 <div align="center">
 
-Built for [OpenClaw](https://github.com/openclaw/openclaw) · Made by [OpenCloud](https://github.com/psiquis)
+Built for [OpenClaw](https://github.com/openclaw/openclaw) · Made by [psiquis](https://github.com/psiquis)
 
 *Ship agents, not anxiety.*
 
