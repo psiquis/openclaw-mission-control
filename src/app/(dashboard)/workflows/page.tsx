@@ -1,388 +1,239 @@
 "use client";
 
-import { BRANDING } from "@/config/branding";
+import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
+import { Loader2, Play, Pencil, History, Workflow as WorkflowIcon, ExternalLink, Zap } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
 
-interface Workflow {
+interface CronJob {
   id: string;
-  emoji: string;
+  agentId: string;
   name: string;
-  description: string;
-  schedule: string;
-  steps: string[];
-  status: "active" | "inactive";
-  trigger: "cron" | "demand";
+  enabled: boolean;
+  scheduleDisplay?: string;
+  timezone?: string;
+  nextRun?: string | null;
+  lastRun?: string | null;
+  description?: string;
+  deliveryChannel?: string;
+  category?: string;
 }
 
-const WORKFLOWS: Workflow[] = [
-  {
-    id: "social-radar",
-    emoji: "",
-    name: "Social Radar",
-    description: "Monitoriza menciones, oportunidades de colaboración y conversaciones relevantes en redes sociales y foros.",
-    schedule: "9:30h y 17:30h (cada día)",
-    trigger: "cron",
-    status: "active",
-    steps: [
-      `Busca menciones de ${BRANDING.twitterHandle} en Twitter/X, LinkedIn e Instagram`,
-      "Revisa hilos de Reddit en r/webdev, r/javascript, r/learnprogramming",
-      `Detecta oportunidades de colaboración y collabs entrantes (${BRANDING.ownerCollabEmail})`,
-      "Monitoriza aprendiendo.dev en conversaciones y menciones",
-      "Envía resumen por Telegram si hay algo relevante",
-    ],
-  },
-  {
-    id: "noticias-ia",
-    emoji: "",
-    name: "Noticias IA y Web",
-    description: "Resume las noticias más relevantes de IA y desarrollo web del timeline de Twitter para arrancar el día informado.",
-    schedule: "7:45h (cada día)",
-    trigger: "cron",
-    status: "active",
-    steps: [
-      "Lee el timeline de Twitter/X via bird CLI",
-      "Filtra noticias de IA, web dev, arquitectura y herramientas dev",
-      "Selecciona 5-7 noticias más relevantes para el nicho de Rubén",
-      "Genera resumen estructurado con enlace y contexto",
-      "Envía digest por Telegram",
-    ],
-  },
-  {
-    id: "trend-monitor",
-    emoji: "",
-    name: "Trend Monitor",
-    description: "Radar de tendencias urgentes en el nicho tech. Detecta temas virales antes de que exploten para aprovechar la ola de contenido.",
-    schedule: "7h, 10h, 15h y 20h (cada día)",
-    trigger: "cron",
-    status: "active",
-    steps: [
-      "Monitoriza trending topics en Twitter/X relacionados con tech y programación",
-      "Busca en Hacker News, dev.to y GitHub Trending",
-      "Evalúa si el trend es relevante para el canal de Rubén",
-      "Si detecta algo urgente, notifica inmediatamente con contexto",
-      "Sugiere ángulo de contenido si el trend tiene potencial",
-    ],
-  },
-  {
-    id: "daily-linkedin",
-    emoji: "",
-    name: "Daily LinkedIn Brief",
-    description: "Genera el post de LinkedIn del día basado en las noticias más relevantes de Hacker News, dev.to y la web tech.",
-    schedule: "9h (cada día)",
-    trigger: "cron",
-    status: "active",
-    steps: [
-      "Recopila top posts de Hacker News (front page tech/dev)",
-      "Revisa trending en dev.to y artículos destacados",
-      "Selecciona tema con mayor potencial de engagement para la audiencia de Rubén",
-      "Redacta post de LinkedIn en la voz de Rubén (profesional-cercano, sin emojis ni hashtags)",
-      "Envía borrador por Telegram para revisión y publicación",
-    ],
-  },
-  {
-    id: "newsletter-digest",
-    emoji: "",
-    name: "Newsletter Digest",
-    description: "Digest curado de las newsletters del día. Consolida lo mejor de las suscripciones de Rubén en un resumen accionable.",
-    schedule: "20h (cada día)",
-    trigger: "cron",
-    status: "active",
-    steps: [
-      "Accede a Gmail y busca newsletters recibidas en el día",
-      "Filtra por remitentes relevantes (tech, IA, productividad, inversiones)",
-      "Extrae los puntos clave de cada newsletter",
-      "Genera digest estructurado por categorías",
-      "Envía resumen por Telegram",
-    ],
-  },
-  {
-    id: "email-categorization",
-    emoji: "",
-    name: "Email Categorization",
-    description: "Categoriza y resume los emails del día para que Rubén empiece la jornada sin inbox anxiety.",
-    schedule: "7:45h (cada día)",
-    trigger: "cron",
-    status: "active",
-    steps: [
-      "Accede a Gmail y lee emails no leídos del día",
-      "Categoriza: urgente / colabs / facturas / universidad / newsletters / otros",
-      "Resumen de cada categoría con acción recomendada",
-      "Detecta emails de clientes con facturas pendientes (>90 días)",
-      "Envía resumen estructurado por Telegram",
-    ],
-  },
-  {
-    id: "weekly-newsletter",
-    emoji: "",
-    name: "Weekly Newsletter",
-    description: "Recapitulación semanal automática de los tweets y posts de LinkedIn para usar como base de la newsletter.",
-    schedule: "Domingos 18h",
-    trigger: "cron",
-    status: "active",
-    steps: [
-      `Recopila tweets de la semana (${BRANDING.twitterHandle} via bird CLI)`,
-      "Recopila posts publicados en LinkedIn",
-      "Organiza por temas y relevancia",
-      "Genera borrador de recapitulación semanal en tono newsletter",
-      "Envía por Telegram para revisión antes de publicar",
-    ],
-  },
-  {
-    id: "advisory-board",
-    emoji: "",
-    name: "Advisory Board",
-    description: "7 asesores IA con personalidades y memorias propias. Consulta a cualquier advisor o convoca al board completo.",
-    schedule: "Bajo demanda",
-    trigger: "demand",
-    status: "active",
-    steps: [
-      "Rubén envía /cfo, /cmo, /cto, /legal, /growth, /coach o /producto",
-      "El agente carga el skill advisory-board/SKILL.md",
-      "Lee el archivo de memoria del advisor correspondiente (memory/advisors/)",
-      "Responde en la voz y personalidad del advisor con contexto de Rubén",
-      "Actualiza el archivo de memoria con lo aprendido en la consulta",
-      "/board convoca los 7 advisors en secuencia y compila un board meeting completo",
-    ],
-  },
-  {
-    id: "git-backup",
-    emoji: "",
-    name: "Git Backup",
-    description: "Auto-commit y push del workspace cada 4 horas para garantizar que nada se pierde.",
-    schedule: "Cada 4h",
-    trigger: "cron",
-    status: "active",
-    steps: [
-      "Comprueba si hay cambios en el workspace del agente",
-      "Si hay cambios: git add -A",
-      "Genera mensaje de commit automático con timestamp y resumen de cambios",
-      "git push al repositorio remoto",
-      "Silencioso si no hay cambios — solo notifica si hay error",
-    ],
-  },
-  {
-    id: "nightly-evolution",
-    emoji: "",
-    name: "Nightly Evolution",
-    description: "Sesión autónoma nocturna que implementa mejoras en Mission Control según el ROADMAP o inventa features nuevas útiles.",
-    schedule: "3h (cada noche)",
-    trigger: "cron",
-    status: "active",
-    steps: [
-      "Lee ROADMAP.md de Mission Control para seleccionar la siguiente feature",
-      "Si no hay features claras, analiza el estado actual e inventa algo útil",
-      "Implementa la feature completa (código, tests si aplica, UI)",
-      "Verifica que el build de Next.js no falla",
-      "Notifica a Rubén por Telegram con el resumen de lo implementado",
-    ],
-  },
-];
-
-function StatusBadge({ status }: { status: "active" | "inactive" }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-      <div style={{
-        width: "6px",
-        height: "6px",
-        borderRadius: "50%",
-        backgroundColor: status === "active" ? "var(--positive)" : "var(--text-muted)",
-      }} />
-      <span style={{
-        fontFamily: "var(--font-body)",
-        fontSize: "10px",
-        fontWeight: 600,
-        color: status === "active" ? "var(--positive)" : "var(--text-muted)",
-        
-        letterSpacing: "0.5px",
-      }}>
-        {status === "active" ? "Activo" : "Inactivo"}
-      </span>
-    </div>
-  );
+interface GwTask {
+  taskId: string;
+  sourceId?: string;
+  status: string;
+  startedAt?: number;
+  endedAt?: number;
+  agentId?: string;
 }
 
-function TriggerBadge({ trigger }: { trigger: "cron" | "demand" }) {
-  return (
-    <div style={{
-      padding: "2px 7px",
-      backgroundColor: trigger === "cron"
-        ? "rgba(59, 130, 246, 0.12)"
-        : "rgba(168, 85, 247, 0.12)",
-      border: `1px solid ${trigger === "cron" ? "rgba(59, 130, 246, 0.25)" : "rgba(168, 85, 247, 0.25)"}`,
-      borderRadius: "5px",
-      fontFamily: "var(--font-body)",
-      fontSize: "10px",
-      fontWeight: 600,
-      color: trigger === "cron" ? "#60a5fa" : "var(--accent)",
-      letterSpacing: "0.4px",
-      
-    }}>
-      {trigger === "cron" ? " Cron" : " Demanda"}
-    </div>
-  );
+interface N8nWf {
+  id: string;
+  name: string;
+  active: boolean;
+  updatedAt?: string;
 }
+
+const STATUS_COLOR: Record<string, string> = {
+  running: "var(--info)",
+  queued: "var(--warning)",
+  succeeded: "var(--positive)",
+  failed: "var(--negative)",
+  timed_out: "var(--negative)",
+  cancelled: "var(--text-muted)",
+};
 
 export default function WorkflowsPage() {
+  const [jobs, setJobs] = useState<CronJob[]>([]);
+  const [lastRuns, setLastRuns] = useState<Record<string, GwTask>>({});
+  const [n8n, setN8n] = useState<{ connected: boolean; workflows?: N8nWf[] } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const [cronRes, tasksRes, n8nRes] = await Promise.all([
+        fetch("/api/cron").then((r) => r.json()).catch(() => []),
+        fetch("/api/tasks").then((r) => r.json()).catch(() => ({ tasks: [] })),
+        fetch("/api/n8n").then((r) => r.json()).catch(() => null),
+      ]);
+      if (Array.isArray(cronRes)) setJobs(cronRes);
+      const bySource: Record<string, GwTask> = {};
+      for (const t of (tasksRes.tasks || []) as GwTask[]) {
+        if (t.sourceId && !bySource[t.sourceId]) bySource[t.sourceId] = t;
+      }
+      setLastRuns(bySource);
+      if (n8nRes) setN8n(n8nRes);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    const iv = setInterval(load, 15000);
+    return () => clearInterval(iv);
+  }, [load]);
+
+  const runNow = async (job: CronJob) => {
+    setRunning(job.id);
+    try {
+      const res = await fetch("/api/cron/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: job.id }),
+      });
+      setToast(res.ok ? `Lanzado: ${job.name}` : `Error al lanzar ${job.name}`);
+      setTimeout(() => setToast(null), 3000);
+      setTimeout(load, 2500);
+    } finally {
+      setRunning(null);
+    }
+  };
+
+  const active = jobs.filter((j) => j.enabled).length;
+  const failing = Object.values(lastRuns).filter((t) => ["failed", "timed_out"].includes(t.status)).length;
+
   return (
-    <div style={{ padding: "24px" }}>
-      {/* Header */}
-      <div style={{ marginBottom: "32px" }}>
-        <h1 style={{
-          fontFamily: "var(--font-heading)",
-          fontSize: "24px",
-          fontWeight: 700,
-          
-          color: "var(--text-primary)",
-          marginBottom: "4px",
-        }}>
-          Workflows
-        </h1>
-        <p style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--text-secondary)" }}>
-          {WORKFLOWS.filter(w => w.status === "active").length} flujos activos · {WORKFLOWS.filter(w => w.trigger === "cron").length} crons automáticos · {WORKFLOWS.filter(w => w.trigger === "demand").length} bajo demanda
+    <div className="p-4 md:p-8">
+      {toast && (
+        <div style={{ position: "fixed", top: "1rem", right: "1rem", zIndex: 1000, padding: "0.6rem 1rem", borderRadius: 8, backgroundColor: "var(--surface-elevated)", border: "1px solid var(--border-strong)", color: "var(--text-primary)", fontSize: 13 }}>
+          {toast}
+        </div>
+      )}
+
+      <div className="mb-6">
+        <h1 style={{ color: "var(--text-primary)" }}>Automatizaciones</h1>
+        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+          Todo lo que corre solo en delorian: tareas programadas de OpenClaw y flujos de n8n
         </p>
       </div>
 
-      {/* Stats row */}
-      <div style={{ display: "flex", gap: "12px", marginBottom: "32px", flexWrap: "wrap" }}>
-        {[
-          { label: "Total workflows", value: WORKFLOWS.length, color: "var(--text-primary)" },
-          { label: "Crons activos", value: WORKFLOWS.filter(w => w.trigger === "cron" && w.status === "active").length, color: "#60a5fa" },
-          { label: "Bajo demanda", value: WORKFLOWS.filter(w => w.trigger === "demand").length, color: "var(--accent)" },
-        ].map((stat) => (
-          <div key={stat.label} style={{
-            padding: "16px 20px",
-            backgroundColor: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: "12px",
-            minWidth: "140px",
-          }}>
-            <div style={{
-              fontFamily: "var(--font-heading)",
-              fontSize: "28px",
-              fontWeight: 700,
-              color: stat.color,
-              
-            }}>
-              {stat.value}
-            </div>
-            <div style={{
-              fontFamily: "var(--font-body)",
-              fontSize: "11px",
-              color: "var(--text-muted)",
-              marginTop: "2px",
-            }}>
-              {stat.label}
-            </div>
-          </div>
-        ))}
-      </div>
+      {loading && (
+        <div className="flex items-center gap-2 p-8 justify-center" style={{ color: "var(--text-muted)" }}>
+          <Loader2 className="w-4 h-4 animate-spin" /> Cargando automatizaciones…
+        </div>
+      )}
 
-      {/* Workflow cards */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        {WORKFLOWS.map((workflow) => (
-          <div key={workflow.id} style={{
-            backgroundColor: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: "16px",
-            padding: "20px 24px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-          }}>
-            {/* Card header */}
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "12px", gap: "12px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "10px",
-                  backgroundColor: "var(--surface-elevated)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  color: "var(--text-secondary)",
-                  border: "1px solid var(--border-strong)",
-                  flexShrink: 0,
-                }}>
-                  {workflow.name.slice(0, 1)}
-                </div>
-                <div>
-                  <h3 style={{
-                    fontFamily: "var(--font-heading)",
-                    fontSize: "16px",
-                    fontWeight: 700,
-                    color: "var(--text-primary)",
-                    
-                    marginBottom: "2px",
-                  }}>
-                    {workflow.name}
-                  </h3>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <TriggerBadge trigger={workflow.trigger} />
-                    <StatusBadge status={workflow.status} />
+      {!loading && (
+        <>
+          {/* Resumen */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            {[
+              { label: "Cron jobs", value: jobs.length },
+              { label: "Activos", value: active },
+              { label: "Con fallos recientes", value: failing, warn: failing > 0 },
+              { label: "Flujos n8n", value: n8n?.connected ? (n8n.workflows || []).length : "—" },
+            ].map((s) => (
+              <div key={s.label} className="rounded-lg p-4" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+                <div className="text-[11.5px] font-medium mb-1" style={{ color: "var(--text-muted)" }}>{s.label}</div>
+                <div className="text-[22px] font-medium tabular" style={{ fontFamily: "var(--font-mono)", color: s.warn ? "var(--negative)" : "var(--text-primary)" }}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Cron jobs de OpenClaw */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+            {jobs.map((job) => {
+              const last = lastRuns[job.id];
+              return (
+                <div key={job.id} className="rounded-lg overflow-hidden" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", opacity: job.enabled ? 1 : 0.6 }}>
+                  <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
+                    <Zap className="w-4 h-4 flex-shrink-0" style={{ color: "var(--accent-fg)" }} />
+                    <span className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{job.name}</span>
+                    <span className="badge badge-info">{job.agentId}</span>
+                    {!job.enabled && <span className="badge" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}>pausado</span>}
+                    {job.deliveryChannel && <span className="text-[11px] ml-auto" style={{ color: "var(--text-muted)" }}>→ {job.deliveryChannel}</span>}
+                  </div>
+                  <div className="p-4">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs mb-3">
+                      <span style={{ color: "var(--text-muted)" }}>Programación</span>
+                      <span className="font-mono" style={{ color: "var(--text-secondary)" }}>{job.scheduleDisplay || "—"}</span>
+                      <span style={{ color: "var(--text-muted)" }}>Próxima ejecución</span>
+                      <span style={{ color: "var(--text-secondary)" }}>
+                        {job.nextRun ? formatDistanceToNow(new Date(job.nextRun), { addSuffix: true, locale: es }) : "—"}
+                      </span>
+                      <span style={{ color: "var(--text-muted)" }}>Última ejecución</span>
+                      <span className="flex items-center gap-1.5">
+                        {last ? (
+                          <>
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: STATUS_COLOR[last.status] || "var(--text-muted)" }} />
+                            <span style={{ color: STATUS_COLOR[last.status] || "var(--text-secondary)" }}>{last.status}</span>
+                            {last.startedAt && (
+                              <span style={{ color: "var(--text-muted)" }}>
+                                · {formatDistanceToNow(new Date(last.startedAt), { addSuffix: true, locale: es })}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span style={{ color: "var(--text-muted)" }}>sin registro reciente</span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => runNow(job)} disabled={running === job.id} className="btn-primary" style={{ height: 28, padding: "0 12px", fontSize: 12 }}>
+                        {running === job.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />} Ejecutar
+                      </button>
+                      <Link href="/tasks" className="btn-outline" style={{ height: 28, padding: "0 12px", fontSize: 12 }}>
+                        <History className="w-3 h-3" /> Historial
+                      </Link>
+                      <Link href="/cron" className="btn-outline" style={{ height: 28, padding: "0 12px", fontSize: 12 }}>
+                        <Pencil className="w-3 h-3" /> Editar
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-              {/* Schedule */}
-              <div style={{
-                padding: "6px 12px",
-                backgroundColor: "var(--surface-elevated)",
-                border: "1px solid var(--border)",
-                borderRadius: "8px",
-                fontFamily: "var(--font-body)",
-                fontSize: "11px",
-                color: "var(--text-secondary)",
-                whiteSpace: "nowrap" as const,
-                flexShrink: 0,
-              }}>
-                 {workflow.schedule}
-              </div>
-            </div>
-
-            {/* Description */}
-            <p style={{
-              fontFamily: "var(--font-body)",
-              fontSize: "13px",
-              color: "var(--text-secondary)",
-              lineHeight: "1.6",
-              marginBottom: "16px",
-            }}>
-              {workflow.description}
-            </p>
-
-            {/* Steps */}
-            <div style={{
-              backgroundColor: "var(--surface-elevated)",
-              borderRadius: "10px",
-              padding: "12px 16px",
-              border: "1px solid var(--border)",
-            }}>
-              <div style={{
-                fontFamily: "var(--font-body)",
-                fontSize: "10px",
-                fontWeight: 600,
-                color: "var(--text-muted)",
-                
-                letterSpacing: "0.7px",
-                marginBottom: "8px",
-              }}>
-                Pasos
-              </div>
-              <ol style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: "4px" }}>
-                {workflow.steps.map((step, i) => (
-                  <li key={i} style={{
-                    fontFamily: "var(--font-body)",
-                    fontSize: "12px",
-                    color: "var(--text-secondary)",
-                    lineHeight: "1.5",
-                  }}>
-                    {step}
-                  </li>
-                ))}
-              </ol>
-            </div>
+              );
+            })}
           </div>
-        ))}
-      </div>
+
+          {/* n8n */}
+          <div className="rounded-lg overflow-hidden" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
+              <WorkflowIcon className="w-4 h-4" style={{ color: "var(--text-muted)" }} />
+              <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Flujos de n8n</h2>
+              <a
+                href="https://delorian.tailb22f88.ts.net:8443"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-auto text-xs flex items-center gap-1"
+                style={{ color: "var(--text-muted)" }}
+              >
+                Abrir n8n <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+            {n8n?.connected ? (
+              <div className="p-3 space-y-1">
+                {(n8n.workflows || []).map((w) => (
+                  <div key={w.id} className="flex items-center gap-3 p-2 rounded-md text-xs" style={{ backgroundColor: "var(--card-elevated)" }}>
+                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: w.active ? "var(--positive)" : "var(--text-muted)" }} />
+                    <span style={{ color: "var(--text-primary)", flex: 1 }}>{w.name}</span>
+                    <span style={{ color: "var(--text-muted)" }}>{w.active ? "activo" : "inactivo"}</span>
+                    {w.updatedAt && (
+                      <span style={{ color: "var(--text-muted)" }}>
+                        {formatDistanceToNow(new Date(w.updatedAt), { addSuffix: true, locale: es })}
+                      </span>
+                    )}
+                  </div>
+                ))}
+                {(n8n.workflows || []).length === 0 && (
+                  <div className="p-4 text-center text-xs" style={{ color: "var(--text-muted)" }}>Sin flujos en n8n</div>
+                )}
+              </div>
+            ) : (
+              <div className="p-4 text-xs" style={{ color: "var(--text-secondary)", lineHeight: 1.7 }}>
+                n8n corre en este servidor pero el panel aún no tiene acceso a su API.
+                Para conectarlo: en n8n abre <span className="font-mono">Settings → n8n API</span>, crea una API key,
+                y añádela como <span className="font-mono">N8N_API_KEY</span> al entorno de mission-control
+                (p. ej. en el ecosystem de pm2). Mientras tanto puedes abrir n8n directamente con el enlace de arriba.
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
