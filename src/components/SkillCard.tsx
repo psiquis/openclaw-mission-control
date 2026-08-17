@@ -33,7 +33,7 @@ export default function SkillCard({ skill, onClick }: SkillCardProps) {
   return (
     <div
       onClick={onClick}
-      className="group rounded-xl border cursor-pointer transition-all hover:scale-[1.01]"
+      className="group rounded-xl border cursor-pointer transition-all"
       style={{
         backgroundColor: skill.enabled ? 'var(--surface)' : 'color-mix(in srgb, var(--error) 5%, var(--surface))',
         borderColor: skill.enabled ? 'var(--border)' : 'color-mix(in srgb, var(--error) 20%, var(--border))',

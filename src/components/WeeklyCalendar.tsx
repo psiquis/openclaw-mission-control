@@ -95,7 +95,7 @@ export function WeeklyCalendar() {
                 : ""
             }`}
           >
-            <div className="text-xs text-gray-500 uppercase">
+            <div className="text-xs text-gray-500">
               {format(day, "EEE")}
             </div>
             <div

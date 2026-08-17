@@ -101,7 +101,7 @@ export function HourlyHeatmap({ data }: HourlyHeatmapProps) {
                 return (
                   <div
                     key={hour}
-                    className="w-3 h-3 rounded-sm cursor-pointer transition-transform hover:scale-125"
+                    className="w-3 h-3 rounded-sm cursor-pointer transition-transform"
                     style={getIntensityStyle(count, maxCount)}
                     onMouseEnter={(e) =>
                       handleMouseEnter(e, dayIndex, hour, count)

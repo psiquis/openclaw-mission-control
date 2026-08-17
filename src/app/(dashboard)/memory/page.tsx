@@ -130,7 +130,7 @@ export default function MemoryPage() {
             fontFamily: "var(--font-heading)",
             fontSize: "24px",
             fontWeight: 700,
-            letterSpacing: "-1px",
+            
             color: "var(--text-primary)",
             marginBottom: "4px",
           }}
@@ -169,7 +169,7 @@ export default function MemoryPage() {
               letterSpacing: "0.08em",
               color: "var(--text-muted)",
               padding: "0 16px 8px",
-              textTransform: "uppercase",
+              
             }}
           >
             Workspaces
@@ -201,7 +201,6 @@ export default function MemoryPage() {
                   if (!isSelected) e.currentTarget.style.background = "transparent";
                 }}
               >
-                <span style={{ fontSize: "18px", lineHeight: 1, flexShrink: 0 }}>{workspace.emoji}</span>
                 <div style={{ minWidth: 0 }}>
                   <div
                     style={{

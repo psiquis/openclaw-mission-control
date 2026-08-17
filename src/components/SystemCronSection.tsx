@@ -556,7 +556,7 @@ function InlineForm({
     fontWeight: 600,
     color: "var(--text-secondary)",
     marginBottom: "0.3rem",
-    textTransform: "uppercase",
+    
     letterSpacing: "0.05em",
   };
 

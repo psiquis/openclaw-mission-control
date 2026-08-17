@@ -129,13 +129,13 @@ const TIMEZONES = [
 ];
 
 const AGENTS = [
-  { id: "", label: "Default", emoji: "🤖" },
-  { id: "ruben", label: "Rubén", emoji: "🧠" },
-  { id: "bill", label: "Bill", emoji: "🖥️" },
-  { id: "elon", label: "Elon", emoji: "🚀" },
-  { id: "quin", label: "Quin", emoji: "⚡" },
-  { id: "trump", label: "Trump", emoji: "📢" },
-  { id: "warren", label: "Warren", emoji: "💰" },
+  { id: "", label: "Default", emoji: "" },
+  { id: "ruben", label: "Rubén", emoji: "" },
+  { id: "bill", label: "Bill", emoji: "" },
+  { id: "elon", label: "Elon", emoji: "" },
+  { id: "quin", label: "Quin", emoji: "" },
+  { id: "trump", label: "Trump", emoji: "" },
+  { id: "warren", label: "Warren", emoji: "" },
 ];
 
 const MODELS = [
@@ -174,12 +174,12 @@ type PayloadKind = "agentTurn" | "systemEvent";
 type FrequencyMode = "every-minutes" | "hourly" | "daily" | "weekly" | "monthly" | "custom";
 
 const FREQUENCY_MODES: Array<{ id: FrequencyMode; label: string; emoji: string }> = [
-  { id: "every-minutes", label: "Every N min", emoji: "⏱️" },
-  { id: "hourly", label: "Hourly", emoji: "🕐" },
-  { id: "daily", label: "Daily", emoji: "☀️" },
-  { id: "weekly", label: "Weekly", emoji: "📅" },
-  { id: "monthly", label: "Monthly", emoji: "🗓️" },
-  { id: "custom", label: "Custom", emoji: "⚙️" },
+  { id: "every-minutes", label: "Every N min", emoji: "" },
+  { id: "hourly", label: "Hourly", emoji: "" },
+  { id: "daily", label: "Daily", emoji: "" },
+  { id: "weekly", label: "Weekly", emoji: "" },
+  { id: "monthly", label: "Monthly", emoji: "" },
+  { id: "custom", label: "Custom", emoji: "" },
 ];
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -615,7 +615,7 @@ export function CronJobModal({ isOpen, onClose, onSave, onDelete, editingJob }: 
       // Extract the actual OpenClaw error if it's embedded
       const match = msg.match(/Error:\s*(.+?)(\n|$)/);
       const cleanMsg = match ? match[1] : msg;
-      setErrors({ submit: `❌ ${cleanMsg}` });
+      setErrors({ submit: `${cleanMsg}` });
     } finally {
       setIsSaving(false);
     }
@@ -636,7 +636,7 @@ export function CronJobModal({ isOpen, onClose, onSave, onDelete, editingJob }: 
           style={{ backgroundColor: "var(--card)", borderBottom: "1px solid var(--border)" }}
         >
           <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
-            {editingJob ? "✏️ Edit Cron Job" : "➕ Create Cron Job"}
+            {editingJob ? " Edit Cron Job" : " Create Cron Job"}
           </h2>
           <button
             onClick={onClose}
@@ -657,7 +657,7 @@ export function CronJobModal({ isOpen, onClose, onSave, onDelete, editingJob }: 
                 transition: "background-color 0.3s",
                 flexShrink: 0,
               }} />
-              <span style={{ fontSize: "0.9rem" }}>📝</span>
+              <span style={{ fontSize: "0.9rem" }}></span>
               <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text-primary)" }}>Basic Info</span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
@@ -694,7 +694,7 @@ export function CronJobModal({ isOpen, onClose, onSave, onDelete, editingJob }: 
                 transition: "background-color 0.3s",
                 flexShrink: 0,
               }} />
-              <span style={{ fontSize: "0.9rem" }}>⏰</span>
+              <span style={{ fontSize: "0.9rem" }}></span>
               <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text-primary)" }}>Schedule</span>
             </div>
 
@@ -719,7 +719,7 @@ export function CronJobModal({ isOpen, onClose, onSave, onDelete, editingJob }: 
                     transition: "all 0.15s",
                   }}
                 >
-                  {kind === "cron" ? "🔄 Recurring" : kind === "every" ? "⏱️ Interval" : "📌 One-shot"}
+                  {kind === "cron" ? " Recurring" : kind === "every" ? " Interval" : " One-shot"}
                 </button>
               ))}
             </div>
@@ -746,7 +746,7 @@ export function CronJobModal({ isOpen, onClose, onSave, onDelete, editingJob }: 
                         borderColor: frequencyMode === mode.id ? "rgba(255,59,48,0.3)" : "var(--border)",
                       }}
                     >
-                      {mode.emoji} {mode.label}
+                      {mode.label}
                     </button>
                   ))}
                 </div>
@@ -953,7 +953,7 @@ export function CronJobModal({ isOpen, onClose, onSave, onDelete, editingJob }: 
                 transition: "background-color 0.3s",
                 flexShrink: 0,
               }} />
-              <span style={{ fontSize: "0.9rem" }}>⚡</span>
+              <span style={{ fontSize: "0.9rem" }}></span>
               <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text-primary)" }}>Execution</span>
             </div>
 
@@ -964,7 +964,7 @@ export function CronJobModal({ isOpen, onClose, onSave, onDelete, editingJob }: 
                 <select value={agentId} onChange={(e) => setAgentId(e.target.value)} style={selectStyle}>
                   {AGENTS.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.emoji} {a.label}
+                      {a.label}
                     </option>
                   ))}
                 </select>
@@ -983,7 +983,7 @@ export function CronJobModal({ isOpen, onClose, onSave, onDelete, editingJob }: 
                         borderColor: taskPreset === tp.id ? "rgba(34,197,94,0.4)" : "var(--border)",
                       }}>
                       <div style={{ fontSize: "0.8rem", fontWeight: 600, color: taskPreset === tp.id ? "#22c55e" : "var(--text-primary)" }}>
-                        {tp.emoji} {tp.label}
+                        {tp.label}
                       </div>
                       <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "2px" }}>{tp.desc}</div>
                     </button>
@@ -1016,7 +1016,7 @@ export function CronJobModal({ isOpen, onClose, onSave, onDelete, editingJob }: 
                         color: sessionTarget === st ? "var(--accent)" : "var(--text-secondary)",
                         borderColor: sessionTarget === st ? "rgba(255,59,48,0.3)" : "var(--border)",
                       }}>
-                      {st === "main" ? "🏠 Main" : st === "isolated" ? "🔒 Isolated" : "🔑 Custom"}
+                      {st === "main" ? " Main" : st === "isolated" ? " Isolated" : " Custom"}
                     </button>
                   ))}
                 </div>
@@ -1050,7 +1050,7 @@ export function CronJobModal({ isOpen, onClose, onSave, onDelete, editingJob }: 
                           color: payloadKind === pk ? "var(--accent)" : "var(--text-secondary)",
                           borderColor: payloadKind === pk ? "rgba(255,59,48,0.3)" : "var(--border)",
                         }}>
-                        {pk === "agentTurn" ? "💬 Agent Turn" : "⚙️ System Event"}
+                        {pk === "agentTurn" ? " Agent Turn" : " System Event"}
                       </button>
                     );
                   })}
@@ -1068,7 +1068,7 @@ export function CronJobModal({ isOpen, onClose, onSave, onDelete, editingJob }: 
                     alignItems: "center",
                     gap: "0.5rem",
                   }}>
-                    ⚠️ Las sesiones "Main" requieren un evento de sistema (System Event), no un mensaje de agente.
+                     Las sesiones "Main" requieren un evento de sistema (System Event), no un mensaje de agente.
                   </div>
                 )}
                 {sessionTarget === "isolated" && payloadKind !== "agentTurn" && (
@@ -1084,7 +1084,7 @@ export function CronJobModal({ isOpen, onClose, onSave, onDelete, editingJob }: 
                     alignItems: "center",
                     gap: "0.5rem",
                   }}>
-                    ⚠️ Las sesiones aisladas requieren un mensaje de agente (Agent Turn), no un evento de sistema.
+                     Las sesiones aisladas requieren un mensaje de agente (Agent Turn), no un evento de sistema.
                   </div>
                 )}
                 {errors.payload && <p style={{ color: "var(--error)", fontSize: "0.75rem", marginTop: "0.25rem" }}>{errors.payload}</p>}
@@ -1212,7 +1212,7 @@ export function CronJobModal({ isOpen, onClose, onSave, onDelete, editingJob }: 
                         }
                       }}
                       style={{ accentColor: "var(--accent)", width: "1rem", height: "1rem" }} />
-                    📢 Enviar resultado por Telegram
+                     Enviar resultado por Telegram
                     {announce === true && agentId && (
                       <span style={{ fontSize: "0.72rem", color: "#22c55e", marginLeft: "0.25rem" }}>
                         vía bot {agentId}
@@ -1227,7 +1227,7 @@ export function CronJobModal({ isOpen, onClose, onSave, onDelete, editingJob }: 
           {/* ===== Section 5: Preview ===== */}
           <div style={sectionStyle}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-              <span style={{ fontSize: "0.9rem" }}>👁️</span>
+              <span style={{ fontSize: "0.9rem" }}></span>
               <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text-primary)" }}>Preview</span>
             </div>
 

@@ -17,46 +17,50 @@ export function StatsCard({
   title,
   value,
   icon,
-  iconColor = "var(--info)",
+  iconColor = "var(--text-muted)",
   trend,
 }: StatsCardProps) {
   return (
-    <div 
-      className="rounded-xl p-4 md:p-6"
+    <div
+      className="rounded-lg p-4"
       style={{
         backgroundColor: 'var(--card)',
         border: '1px solid var(--border)',
       }}
     >
-      <div className="flex items-center justify-between mb-1.5 md:mb-2">
-        <span 
-          className="text-xs md:text-sm font-medium"
-          style={{ color: 'var(--text-secondary)' }}
+      <div className="flex items-center justify-between mb-2">
+        <span
+          className="text-[11.5px] font-medium"
+          style={{ color: 'var(--text-muted)' }}
         >
           {title}
         </span>
-        <div className="[&>svg]:w-4 [&>svg]:h-4 md:[&>svg]:w-5 md:[&>svg]:h-5" style={{ color: iconColor }}>
+        <div className="[&>svg]:w-3.5 [&>svg]:h-3.5" style={{ color: iconColor, opacity: 0.8 }}>
           {icon}
         </div>
       </div>
 
       <div className="flex items-end justify-between">
-        <span 
-          className="text-2xl md:text-3xl font-bold tracking-tight"
-          style={{ 
-            fontFamily: 'var(--font-heading)',
+        <span
+          className="text-[22px] font-medium tabular"
+          style={{
+            fontFamily: 'var(--font-mono)',
             color: 'var(--text-primary)',
-            letterSpacing: '-1.5px'
+            letterSpacing: '-0.01em',
+            lineHeight: 1.1,
           }}
         >
           {value}
         </span>
         {trend && (
           <span
-            className="text-xs md:text-sm font-medium"
-            style={{ color: trend.isPositive ? 'var(--success)' : 'var(--error)' }}
+            className="text-[11px] font-medium tabular"
+            style={{
+              fontFamily: 'var(--font-mono)',
+              color: trend.isPositive ? 'var(--success)' : 'var(--error)',
+            }}
           >
-            {trend.isPositive ? "↑" : "↓"} {trend.value}%
+            {trend.isPositive ? "+" : "−"}{Math.abs(trend.value)}%
           </span>
         )}
       </div>

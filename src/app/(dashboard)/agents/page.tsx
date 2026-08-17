@@ -94,7 +94,7 @@ export default function AgentsPage() {
           style={{
             fontFamily: "var(--font-heading)",
             color: "var(--text-primary)",
-            letterSpacing: "-1.5px",
+            
           }}
         >
           <Users className="inline-block w-8 h-8 mr-2 mb-1" />
@@ -148,7 +148,7 @@ export default function AgentsPage() {
         {agents.map((agent) => (
           <div
             key={agent.id}
-            className="rounded-xl overflow-hidden transition-all hover:scale-[1.02]"
+            className="rounded-xl overflow-hidden transition-all"
             style={{
               backgroundColor: "var(--card)",
               border: "1px solid var(--border)",
@@ -164,13 +164,13 @@ export default function AgentsPage() {
             >
               <div className="flex items-center gap-3">
                 <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                  className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-semibold"
                   style={{
                     backgroundColor: `${agent.color}20`,
                     border: `2px solid ${agent.color}`,
                   }}
                 >
-                  {agent.emoji}
+                  {agent.name.slice(0, 2).toUpperCase()}
                 </div>
                 <div>
                   <h3
@@ -302,14 +302,13 @@ export default function AgentsPage() {
                         agent.allowAgentsDetails.map((subagent) => (
                           <div
                             key={subagent.id}
-                            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition-all hover:scale-105"
+                            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition-all"
                             style={{
                               backgroundColor: `${subagent.color}15`,
                               border: `1px solid ${subagent.color}40`,
                             }}
                             title={`${subagent.name} (${subagent.id})`}
                           >
-                            <span className="text-sm">{subagent.emoji}</span>
                             <span
                               style={{
                                 color: subagent.color,

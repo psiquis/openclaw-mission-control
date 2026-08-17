@@ -135,7 +135,7 @@ export default function AboutPage() {
                 style={{
                   fontFamily: "var(--font-heading)",
                   color: "var(--text-primary)",
-                  letterSpacing: "-1px",
+                  
                 }}
               >
                 {getAgentDisplayName()}
@@ -492,7 +492,7 @@ export default function AboutPage() {
             className="text-sm md:text-base"
             style={{ color: "var(--text-secondary)" }}
           >
-            Built with <span style={{ color: "var(--accent)" }}>♥</span> on{" "}
+            Built on{" "}
             <a
               href="https://github.com/openclaw/openclaw"
               target="_blank"

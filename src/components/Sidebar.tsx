@@ -7,7 +7,6 @@ import {
   Gauge,
   Bot,
   Bolt,
-  Cpu,
   ScrollText,
   TerminalSquare,
   GitCompareArrows,
@@ -104,10 +103,11 @@ export function Sidebar() {
       {isMobile && !isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed top-3 left-3 z-50 p-2 rounded-lg"
+          className="fixed top-2.5 left-3 z-50 p-2 rounded-md"
           style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+          aria-label="Open navigation"
         >
-          <Menu className="w-5 h-5" style={{ color: "var(--text-primary)" }} />
+          <Menu className="w-4 h-4" style={{ color: "var(--text-primary)" }} />
         </button>
       )}
 
@@ -132,43 +132,29 @@ export function Sidebar() {
         }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 pt-5 pb-4">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: "var(--accent)", color: "white" }}
-            >
-              <PanelLeftClose className="w-4 h-4" />
-            </div>
-            <h1
-              className="text-sm font-bold tracking-tight"
-              style={{
-                fontFamily: "var(--font-heading)",
-                color: "var(--text-primary)",
-                letterSpacing: "-0.3px",
-              }}
-            >
-              Mission Control
-            </h1>
+        <div className="sidebar-brand">
+          <div className="mark">
+            <PanelLeftClose style={{ width: 13, height: 13 }} />
           </div>
+          <h1>Mission Control</h1>
+          {!isMobile && <span className="env">prod</span>}
           {isMobile && (
-            <button onClick={() => setIsOpen(false)} style={{ color: "var(--text-muted)" }}>
-              <X className="w-5 h-5" />
+            <button
+              onClick={() => setIsOpen(false)}
+              style={{ marginLeft: "auto", color: "var(--text-muted)" }}
+              aria-label="Close navigation"
+            >
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 pb-4">
+        <nav className="flex-1 px-2.5 py-3">
           {navSections.map((section) => (
             <div key={section.label} className="mb-4">
-              <p
-                className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider"
-                style={{ color: "var(--text-muted)" }}
-              >
-                {section.label}
-              </p>
-              <ul className="space-y-0.5">
+              <span className="nav-label">{section.label}</span>
+              <ul className="space-y-px">
                 {section.items.map((item) => {
                   const isActive = pathname === item.href;
                   const Icon = item.icon;
@@ -176,34 +162,9 @@ export function Sidebar() {
                     <li key={item.href}>
                       <Link
                         href={item.href}
-                        className="flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] font-medium transition-colors"
-                        style={
-                          isActive
-                            ? {
-                                backgroundColor: "var(--accent-soft)",
-                                color: "var(--accent)",
-                              }
-                            : {
-                                color: "var(--text-secondary)",
-                              }
-                        }
-                        onMouseEnter={(e) => {
-                          if (!isActive) {
-                            e.currentTarget.style.backgroundColor = "var(--surface-hover)";
-                            e.currentTarget.style.color = "var(--text-primary)";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isActive) {
-                            e.currentTarget.style.backgroundColor = "transparent";
-                            e.currentTarget.style.color = "var(--text-secondary)";
-                          }
-                        }}
+                        className={`nav-item${isActive ? " active" : ""}`}
                       >
-                        <Icon
-                          className="w-[16px] h-[16px]"
-                          style={{ color: isActive ? "var(--accent)" : "var(--text-muted)" }}
-                        />
+                        <Icon />
                         {item.label}
                       </Link>
                     </li>
@@ -215,44 +176,24 @@ export function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="px-3 pb-4" style={{ borderTop: "1px solid var(--border)" }}>
-          <div className="pt-3 space-y-0.5">
+        <div className="px-2.5 pb-3" style={{ borderTop: "1px solid var(--border)" }}>
+          <div className="pt-2.5 space-y-px">
             <Link
               href="/about"
-              className="flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] font-medium"
-              style={{ color: pathname === "/about" ? "var(--accent)" : "var(--text-secondary)" }}
+              className={`nav-item${pathname === "/about" ? " active" : ""}`}
             >
-              <CircleUser
-                className="w-[16px] h-[16px]"
-                style={{ color: pathname === "/about" ? "var(--accent)" : "var(--text-muted)" }}
-              />
+              <CircleUser />
               About
             </Link>
             <Link
               href="/settings"
-              className="flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] font-medium"
-              style={{ color: pathname === "/settings" ? "var(--accent)" : "var(--text-secondary)" }}
+              className={`nav-item${pathname === "/settings" ? " active" : ""}`}
             >
-              <Cog
-                className="w-[16px] h-[16px]"
-                style={{ color: pathname === "/settings" ? "var(--accent)" : "var(--text-muted)" }}
-              />
+              <Cog />
               Settings
             </Link>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2.5 px-3 py-[7px] w-full rounded-lg text-[13px] font-medium transition-colors"
-              style={{ color: "var(--text-muted)" }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "var(--error)";
-                e.currentTarget.style.backgroundColor = "var(--surface-hover)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--text-muted)";
-                e.currentTarget.style.backgroundColor = "transparent";
-              }}
-            >
-              <LogOut className="w-[16px] h-[16px]" />
+            <button onClick={handleLogout} className="nav-item danger w-full">
+              <LogOut />
               Sign out
             </button>
           </div>

@@ -218,7 +218,7 @@ export default function ActionsPage() {
                   <>
                     <Play className="w-4 h-4" />
                     Run
-                    {action.dangerous && <span style={{ fontSize: "0.7rem", opacity: 0.7 }}>⚠️</span>}
+                    {action.dangerous && <span style={{ fontSize: "0.7rem", opacity: 0.7 }}></span>}
                   </>
                 )}
               </button>
@@ -299,7 +299,7 @@ export default function ActionsPage() {
             border: "1px solid var(--border)",
           }}>
             <h3 style={{ color: "var(--text-primary)", marginBottom: "0.75rem", fontWeight: 600 }}>
-              ⚠️ Confirm: {confirmAction.label}
+               Confirm: {confirmAction.label}
             </h3>
             <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
               This action may affect running services. Are you sure?

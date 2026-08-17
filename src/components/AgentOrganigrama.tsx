@@ -232,10 +232,12 @@ export function AgentOrganigrama({ agents }: AgentOrganigramaProps) {
               <text
                 x={x + 22}
                 y={y + pos.height / 2 + 6}
-                fontSize={20}
+                fontSize={10}
+                fontWeight={600}
+                fill="var(--text-secondary)"
                 textAnchor="middle"
               >
-                {agent.emoji}
+                {(agent.name || "").slice(0, 2).toUpperCase()}
               </text>
 
               {/* Name */}

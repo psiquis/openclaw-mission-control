@@ -16,7 +16,7 @@ interface Workflow {
 const WORKFLOWS: Workflow[] = [
   {
     id: "social-radar",
-    emoji: "🔭",
+    emoji: "",
     name: "Social Radar",
     description: "Monitoriza menciones, oportunidades de colaboración y conversaciones relevantes en redes sociales y foros.",
     schedule: "9:30h y 17:30h (cada día)",
@@ -32,7 +32,7 @@ const WORKFLOWS: Workflow[] = [
   },
   {
     id: "noticias-ia",
-    emoji: "📰",
+    emoji: "",
     name: "Noticias IA y Web",
     description: "Resume las noticias más relevantes de IA y desarrollo web del timeline de Twitter para arrancar el día informado.",
     schedule: "7:45h (cada día)",
@@ -48,7 +48,7 @@ const WORKFLOWS: Workflow[] = [
   },
   {
     id: "trend-monitor",
-    emoji: "🔥",
+    emoji: "",
     name: "Trend Monitor",
     description: "Radar de tendencias urgentes en el nicho tech. Detecta temas virales antes de que exploten para aprovechar la ola de contenido.",
     schedule: "7h, 10h, 15h y 20h (cada día)",
@@ -64,7 +64,7 @@ const WORKFLOWS: Workflow[] = [
   },
   {
     id: "daily-linkedin",
-    emoji: "📊",
+    emoji: "",
     name: "Daily LinkedIn Brief",
     description: "Genera el post de LinkedIn del día basado en las noticias más relevantes de Hacker News, dev.to y la web tech.",
     schedule: "9h (cada día)",
@@ -80,7 +80,7 @@ const WORKFLOWS: Workflow[] = [
   },
   {
     id: "newsletter-digest",
-    emoji: "📬",
+    emoji: "",
     name: "Newsletter Digest",
     description: "Digest curado de las newsletters del día. Consolida lo mejor de las suscripciones de Rubén en un resumen accionable.",
     schedule: "20h (cada día)",
@@ -96,7 +96,7 @@ const WORKFLOWS: Workflow[] = [
   },
   {
     id: "email-categorization",
-    emoji: "📧",
+    emoji: "",
     name: "Email Categorization",
     description: "Categoriza y resume los emails del día para que Rubén empiece la jornada sin inbox anxiety.",
     schedule: "7:45h (cada día)",
@@ -112,7 +112,7 @@ const WORKFLOWS: Workflow[] = [
   },
   {
     id: "weekly-newsletter",
-    emoji: "📅",
+    emoji: "",
     name: "Weekly Newsletter",
     description: "Recapitulación semanal automática de los tweets y posts de LinkedIn para usar como base de la newsletter.",
     schedule: "Domingos 18h",
@@ -128,7 +128,7 @@ const WORKFLOWS: Workflow[] = [
   },
   {
     id: "advisory-board",
-    emoji: "🏛️",
+    emoji: "",
     name: "Advisory Board",
     description: "7 asesores IA con personalidades y memorias propias. Consulta a cualquier advisor o convoca al board completo.",
     schedule: "Bajo demanda",
@@ -145,7 +145,7 @@ const WORKFLOWS: Workflow[] = [
   },
   {
     id: "git-backup",
-    emoji: "🔄",
+    emoji: "",
     name: "Git Backup",
     description: "Auto-commit y push del workspace cada 4 horas para garantizar que nada se pierde.",
     schedule: "Cada 4h",
@@ -161,7 +161,7 @@ const WORKFLOWS: Workflow[] = [
   },
   {
     id: "nightly-evolution",
-    emoji: "🌙",
+    emoji: "",
     name: "Nightly Evolution",
     description: "Sesión autónoma nocturna que implementa mejoras en Mission Control según el ROADMAP o inventa features nuevas útiles.",
     schedule: "3h (cada noche)",
@@ -191,7 +191,7 @@ function StatusBadge({ status }: { status: "active" | "inactive" }) {
         fontSize: "10px",
         fontWeight: 600,
         color: status === "active" ? "var(--positive)" : "var(--text-muted)",
-        textTransform: "uppercase",
+        
         letterSpacing: "0.5px",
       }}>
         {status === "active" ? "Activo" : "Inactivo"}
@@ -214,9 +214,9 @@ function TriggerBadge({ trigger }: { trigger: "cron" | "demand" }) {
       fontWeight: 600,
       color: trigger === "cron" ? "#60a5fa" : "var(--accent)",
       letterSpacing: "0.4px",
-      textTransform: "uppercase" as const,
+      
     }}>
-      {trigger === "cron" ? "⏱ Cron" : "⚡ Demanda"}
+      {trigger === "cron" ? " Cron" : " Demanda"}
     </div>
   );
 }
@@ -230,7 +230,7 @@ export default function WorkflowsPage() {
           fontFamily: "var(--font-heading)",
           fontSize: "24px",
           fontWeight: 700,
-          letterSpacing: "-1px",
+          
           color: "var(--text-primary)",
           marginBottom: "4px",
         }}>
@@ -260,7 +260,7 @@ export default function WorkflowsPage() {
               fontSize: "28px",
               fontWeight: 700,
               color: stat.color,
-              letterSpacing: "-1px",
+              
             }}>
               {stat.value}
             </div>
@@ -297,11 +297,13 @@ export default function WorkflowsPage() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "20px",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  color: "var(--text-secondary)",
                   border: "1px solid var(--border-strong)",
                   flexShrink: 0,
                 }}>
-                  {workflow.emoji}
+                  {workflow.name.slice(0, 1)}
                 </div>
                 <div>
                   <h3 style={{
@@ -309,7 +311,7 @@ export default function WorkflowsPage() {
                     fontSize: "16px",
                     fontWeight: 700,
                     color: "var(--text-primary)",
-                    letterSpacing: "-0.3px",
+                    
                     marginBottom: "2px",
                   }}>
                     {workflow.name}
@@ -332,7 +334,7 @@ export default function WorkflowsPage() {
                 whiteSpace: "nowrap" as const,
                 flexShrink: 0,
               }}>
-                🕐 {workflow.schedule}
+                 {workflow.schedule}
               </div>
             </div>
 
@@ -359,7 +361,7 @@ export default function WorkflowsPage() {
                 fontSize: "10px",
                 fontWeight: 600,
                 color: "var(--text-muted)",
-                textTransform: "uppercase",
+                
                 letterSpacing: "0.7px",
                 marginBottom: "8px",
               }}>

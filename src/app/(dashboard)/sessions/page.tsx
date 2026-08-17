@@ -293,7 +293,7 @@ function SessionDetail({
                       color: "var(--error)",
                     }}
                   >
-                    ⚠ Aborted
+                     Aborted
                   </span>
                 )}
               </div>
@@ -518,7 +518,7 @@ function SessionRow({
             {session.typeLabel}
           </span>
           {session.aborted && (
-            <span style={{ fontSize: "0.65rem", color: "var(--error)" }}>⚠ aborted</span>
+            <span style={{ fontSize: "0.65rem", color: "var(--error)" }}> aborted</span>
           )}
         </div>
         <div
@@ -596,11 +596,11 @@ function SessionRow({
 type FilterType = "all" | "main" | "cron" | "subagent" | "direct";
 
 const FILTER_TABS: Array<{ id: FilterType; label: string; emoji: string }> = [
-  { id: "all", label: "All", emoji: "📋" },
+  { id: "all", label: "All", emoji: "" },
   { id: "main", label: "Main", emoji: "" },
-  { id: "cron", label: "Cron", emoji: "🕐" },
-  { id: "subagent", label: "Sub-agents", emoji: "🤖" },
-  { id: "direct", label: "Chats", emoji: "💬" },
+  { id: "cron", label: "Cron", emoji: "" },
+  { id: "subagent", label: "Sub-agents", emoji: "" },
+  { id: "direct", label: "Chats", emoji: "" },
 ];
 
 export default function SessionsPage() {
@@ -659,11 +659,11 @@ export default function SessionsPage() {
               fontSize: "1.75rem",
               fontWeight: 700,
               color: "var(--text-primary)",
-              letterSpacing: "-1px",
+              
               marginBottom: "0.25rem",
             }}
           >
-            💬 Session History
+             Session History
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
             All OpenClaw agent sessions — main, cron, sub-agents, and chats
@@ -793,7 +793,6 @@ export default function SessionsPage() {
                       transition: "all 0.15s",
                     }}
                   >
-                    <span>{tab.emoji}</span>
                     <span>{tab.label}</span>
                     {count > 0 && (
                       <span
@@ -871,13 +870,13 @@ export default function SessionsPage() {
             }}
           >
             <div style={{ width: "32px", flexShrink: 0 }} />
-            <div style={{ flex: 1, fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <div style={{ flex: 1, fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)",  letterSpacing: "0.05em" }}>
               Session
             </div>
-            <div style={{ minWidth: "100px", textAlign: "right", fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <div style={{ minWidth: "100px", textAlign: "right", fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)",  letterSpacing: "0.05em" }}>
               Tokens / ctx
             </div>
-            <div style={{ minWidth: "80px", textAlign: "right", fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <div style={{ minWidth: "80px", textAlign: "right", fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)",  letterSpacing: "0.05em" }}>
               Updated
             </div>
             <div style={{ width: "14px", flexShrink: 0 }} />

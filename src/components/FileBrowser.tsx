@@ -676,7 +676,7 @@ export function FileBrowser({ workspace, path, onNavigate, viewMode = "list" }: 
                   onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--background)"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "var(--card)"; }}
                 >
-                  <Icon className="w-10 h-10 md:w-12 md:h-12 mb-2 md:mb-3 group-hover:scale-110 transition-transform" style={{ color: iconColor }} />
+                  <Icon className="w-10 h-10 md:w-12 md:h-12 mb-2 md:mb-3 group- transition-transform" style={{ color: iconColor }} />
                   <span className="text-xs md:text-sm text-center truncate w-full" style={{ color: "var(--text-primary)" }} title={item.name}>
                     {item.name}
                   </span>

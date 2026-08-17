@@ -47,7 +47,7 @@ export default function FilesPage() {
             fontFamily: "var(--font-heading)",
             fontSize: "24px",
             fontWeight: 700,
-            letterSpacing: "-1px",
+            
             color: "var(--text-primary)",
             marginBottom: "4px",
           }}
@@ -86,7 +86,7 @@ export default function FilesPage() {
               letterSpacing: "0.08em",
               color: "var(--text-muted)",
               padding: "0 16px 8px",
-              textTransform: "uppercase",
+              
             }}
           >
             Workspaces
@@ -118,7 +118,6 @@ export default function FilesPage() {
                   if (!isSelected) e.currentTarget.style.background = "transparent";
                 }}
               >
-                <span style={{ fontSize: "18px", lineHeight: 1, flexShrink: 0 }}>{workspace.emoji}</span>
                 <div style={{ minWidth: 0 }}>
                   <div
                     style={{

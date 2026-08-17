@@ -142,7 +142,7 @@ export default function TemplatesPage() {
               <div
                 key={tpl.id}
                 onClick={() => handleSelect(tpl)}
-                className="rounded-xl p-4 cursor-pointer transition-all hover:scale-[1.01]"
+                className="rounded-xl p-4 cursor-pointer transition-all"
                 style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
               >
                 <div className="flex items-center gap-2 mb-2">

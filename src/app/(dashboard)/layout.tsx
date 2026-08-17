@@ -1,6 +1,7 @@
 "use client";
 
 import { Sidebar } from "@/components/Sidebar";
+import { Topbar } from "@/components/Topbar";
 
 export default function DashboardLayout({
   children,
@@ -8,16 +9,12 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "var(--background)" }}>
+    <div className="app-shell">
       <Sidebar />
-      <main
-        style={{
-          marginLeft: "220px",
-          minHeight: "100vh",
-        }}
-      >
-        {children}
-      </main>
+      <div className="app-main">
+        <Topbar />
+        <main style={{ flex: 1, minWidth: 0 }}>{children}</main>
+      </div>
     </div>
   );
 }

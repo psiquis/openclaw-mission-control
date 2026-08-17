@@ -70,10 +70,10 @@ export function WeatherWidget() {
       {/* Header: city + clock */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "0.75rem" }}>
         <div>
-          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.125rem" }}>
+          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)",  letterSpacing: "0.05em", marginBottom: "0.125rem" }}>
             📍 {weather.city}
           </div>
-          <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text-primary)", lineHeight: 1, letterSpacing: "-1px" }}>
+          <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text-primary)", lineHeight: 1,  }}>
             {format(now, "HH:mm")}
           </div>
           <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.125rem" }}>

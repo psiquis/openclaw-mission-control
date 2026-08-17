@@ -66,7 +66,7 @@ export default function AnalyticsPage() {
           className="text-2xl md:text-3xl font-bold mb-2"
           style={{ color: "var(--text-primary)", fontFamily: "var(--font-heading)" }}
         >
-          📊 Analytics
+           Analytics
         </h1>
         <p className="text-sm md:text-base" style={{ color: "var(--text-secondary)" }}>
           Insights and trends from agent activity

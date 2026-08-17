@@ -196,7 +196,7 @@ export function CronJobCard({ job, onToggle, onEdit, onDelete, onRun, onDuplicat
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
               <span
-                className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded font-semibold uppercase tracking-wide"
+                className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded font-semibold tracking-wide"
                 style={{
                   backgroundColor: `color-mix(in srgb, ${agentColor} 20%, transparent)`,
                   color: agentColor,

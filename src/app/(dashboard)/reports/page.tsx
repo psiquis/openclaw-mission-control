@@ -138,7 +138,7 @@ export default function ReportsPage() {
             style={{ borderBottom: "1px solid var(--border)" }}
           >
             <h2
-              className="text-sm font-semibold uppercase tracking-wide"
+              className="text-sm font-semibold tracking-wide"
               style={{ color: "var(--text-secondary)" }}
             >
               {isLoading ? "Loading..." : `${reports.length} Reports`}

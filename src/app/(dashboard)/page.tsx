@@ -68,7 +68,7 @@ function Sparkline({ data, color, height = 40, max }: { data: number[]; color: s
     <svg viewBox={`0 0 ${w} ${height}`} className="w-full" style={{ height }}>
       <defs>
         <linearGradient id={`grad-${color.replace(/[^a-z0-9]/gi, '')}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="0%" stopColor={color} stopOpacity="0.06" />
           <stop offset="100%" stopColor={color} stopOpacity="0.02" />
         </linearGradient>
       </defs>
@@ -171,7 +171,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold mb-1" style={{ fontFamily: "var(--font-heading)", color: "var(--text-primary)", letterSpacing: "-1px" }}>
+          <h1 className="text-2xl md:text-3xl font-bold mb-1" style={{ fontFamily: "var(--font-heading)", color: "var(--text-primary)",  }}>
             Dashboard
           </h1>
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Overview of your OpenClaw agent fleet</p>
@@ -186,7 +186,7 @@ export default function DashboardPage() {
             System Monitor
           </button>
           <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: "rgba(34,197,94,0.12)", color: "var(--success)" }}>
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: "var(--success)" }} />
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--success)" }} />
             Live
           </span>
         </div>
@@ -420,12 +420,12 @@ export default function DashboardPage() {
           </div>
           <div className="p-3 grid grid-cols-2 gap-2">
             {[
-              { href: "/cron", icon: CalendarClock, label: "Cron Jobs", color: "#a78bfa" },
+              { href: "/cron", icon: CalendarClock, label: "Cron Jobs", color: "var(--text-muted)" },
               { href: "/actions", icon: Zap, label: "Actions", color: "var(--accent)" },
-              { href: "/skills", icon: Blocks, label: "Skills", color: "#4ade80" },
-              { href: "/memory", icon: Activity, label: "Memory", color: "#f59e0b" },
+              { href: "/skills", icon: Blocks, label: "Skills", color: "var(--text-muted)" },
+              { href: "/memory", icon: Activity, label: "Memory", color: "var(--text-muted)" },
             ].map(({ href, icon: Icon, label, color }) => (
-              <Link key={href} href={href} className="p-2.5 rounded-lg transition-all hover:scale-[1.02]" style={{ backgroundColor: "var(--card-elevated)", border: "1px solid var(--border)" }}>
+              <Link key={href} href={href} className="p-2.5 rounded-lg transition-all" style={{ backgroundColor: "var(--card-elevated)", border: "1px solid var(--border)" }}>
                 <div className="flex items-center gap-2">
                   <Icon className="w-4 h-4" style={{ color }} />
                   <span className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>{label}</span>

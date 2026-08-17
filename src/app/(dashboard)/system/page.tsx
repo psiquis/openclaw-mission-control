@@ -119,7 +119,7 @@ export default function SystemMonitorPage() {
       if (action === "logs") {
         setLogsModal({ name: svc.name, backend: svc.backend || "pm2", content: data.output, loading: false });
       } else {
-        showToast(`✅ ${svc.name}: ${action} successful`);
+        showToast(` ${svc.name}: ${action} successful`);
         // Refresh data after action
         setTimeout(async () => {
           const r = await fetch("/api/system/monitor");
@@ -131,7 +131,7 @@ export default function SystemMonitorPage() {
       if (action === "logs") {
         setLogsModal({ name: svc.name, backend: svc.backend || "pm2", content: `Error: ${msg}`, loading: false });
       } else {
-        showToast(`❌ ${svc.name}: ${msg}`, "error");
+        showToast(`${svc.name}: ${msg}`, "error");
       }
     } finally {
       setActionLoading((prev) => ({ ...prev, [key]: false }));
@@ -194,7 +194,7 @@ export default function SystemMonitorPage() {
         </div>
         <div className="flex items-center gap-2 mt-1">
           <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: "rgba(34,197,94,0.12)", color: "var(--success)" }}>
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: "var(--success)" }} />
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--success)" }} />
             Live
           </span>
           {lastUpdated && (

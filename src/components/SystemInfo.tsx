@@ -55,7 +55,7 @@ export function SystemInfo({ data }: SystemInfoProps) {
     {
       icon: Server,
       label: "Agent Name",
-      value: `${data.agent.emoji} ${data.agent.name}`,
+      value: `${data.agent.name}`,
       sublabel: data.agent.creature,
     },
     {
