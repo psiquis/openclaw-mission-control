@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="docs/logo-dark.svg" alt="Mission Control" width="80" />
+<img src="docs/logo-dark.svg" alt="OpenClaw Mission Control" width="96" />
 
-# Mission Control
+# OpenClaw Mission Control
 
 ### The command center for your OpenClaw AI agent fleet
 

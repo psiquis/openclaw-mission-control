@@ -1,0 +1,14 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OpenClaw Mission Control logo">
+  <title>OpenClaw Mission Control</title>
+  <defs>
+    <linearGradient id="ocmc-claw" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#6366F1" stroke-opacity="0.35" stroke-width="1.5" stroke-dasharray="2 5"/>
+  <path d="M 132.80 62.26 A 50 50 0 0 1 104.36 149.81" fill="none" stroke="url(#ocmc-claw)" stroke-width="26" stroke-linecap="round"/>
+  <path d="M 95.64 149.81 A 50 50 0 0 1 67.20 62.26" fill="none" stroke="url(#ocmc-claw)" stroke-width="26" stroke-linecap="round"/>
+  <circle cx="100" cy="100" r="8" fill="#FAFAFA"/>
+  <circle cx="100" cy="100" r="8" fill="none" stroke="#6366F1" stroke-width="3"/>
+</svg>
