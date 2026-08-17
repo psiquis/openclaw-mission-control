@@ -52,7 +52,7 @@ export function Topbar() {
   return (
     <header className="topbar">
       <div className="crumb">
-        <span>delorian</span>
+        <span>{process.env.NEXT_PUBLIC_APP_TITLE?.toLowerCase().replace(/\s+/g, "-") || "mission-control"}</span>
         <span className="sep">/</span>
         <b>{label}</b>
         {sub && (
