@@ -14,6 +14,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import { AgentOrganigrama } from "@/components/AgentOrganigrama";
+import { AgentChatPanel } from "@/components/AgentChatPanel";
 
 interface Agent {
   id: string;
@@ -38,6 +39,7 @@ interface Agent {
 
 export default function AgentsPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [chatAgent, setChatAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"cards" | "organigrama">("cards");
 
@@ -353,22 +355,38 @@ export default function AgentsPage() {
                     Ultima actividad: {formatLastActivity(agent.lastActivity)}
                   </span>
                 </div>
-                {agent.activeSessions > 0 && (
-                  <span
-                    className="text-xs font-medium px-2 py-1 rounded"
-                    style={{
-                      backgroundColor: "var(--success)20",
-                      color: "var(--success)",
-                    }}
+                <div className="flex items-center gap-2">
+                  {agent.activeSessions > 0 && (
+                    <span
+                      className="text-xs font-medium px-2 py-1 rounded"
+                      style={{
+                        backgroundColor: "var(--success)20",
+                        color: "var(--success)",
+                      }}
+                    >
+                      {agent.activeSessions} activas
+                    </span>
+                  )}
+                  <button
+                    onClick={() => setChatAgent(agent)}
+                    className="btn-outline"
+                    style={{ height: 28, padding: "0 12px", fontSize: 12 }}
                   >
-                    {agent.activeSessions} active
-                  </span>
-                )}
+                    <MessageSquare style={{ width: 13, height: 13 }} /> Hablar
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         ))}
       </div>
+      )}
+      {chatAgent && (
+        <AgentChatPanel
+          agentId={chatAgent.id}
+          agentName={chatAgent.name}
+          onClose={() => setChatAgent(null)}
+        />
       )}
     </div>
   );

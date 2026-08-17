@@ -13,6 +13,7 @@ const LABELS: Record<string, string> = {
   terminal: "Terminal",
   git: "Git",
   workflows: "Workflows",
+  tasks: "Tasks",
   activity: "Activity",
   cron: "Cron Jobs",
   skills: "Skills",

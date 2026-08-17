@@ -23,6 +23,7 @@ const PAGES: PageCmd[] = [
   { kind: "page", label: "Terminal", href: "/terminal", icon: TerminalSquare, keywords: "consola shell" },
   { kind: "page", label: "Git", href: "/git", icon: GitCompareArrows, keywords: "repos commits" },
   { kind: "page", label: "Workflows", href: "/workflows", icon: Route, keywords: "flujos" },
+  { kind: "page", label: "Tasks", href: "/tasks", icon: Route, keywords: "tareas segundo plano ledger flows" },
   { kind: "page", label: "Activity", href: "/activity", icon: Activity, keywords: "actividad historial" },
   { kind: "page", label: "Cron Jobs", href: "/cron", icon: CalendarClock, keywords: "tareas programadas" },
   { kind: "page", label: "Skills", href: "/skills", icon: Blocks, keywords: "habilidades" },

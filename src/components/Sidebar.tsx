@@ -11,6 +11,7 @@ import {
   TerminalSquare,
   GitCompareArrows,
   Route,
+  ListChecks,
   Activity,
   BrainCircuit,
   FolderTree,
@@ -49,6 +50,7 @@ const navSections = [
     label: "Operations",
     items: [
       { href: "/workflows", label: "Workflows", icon: Route },
+      { href: "/tasks", label: "Tasks", icon: ListChecks },
       { href: "/activity", label: "Activity", icon: Activity },
       { href: "/cron", label: "Cron Jobs", icon: CalendarClock },
       { href: "/skills", label: "Skills", icon: Blocks },

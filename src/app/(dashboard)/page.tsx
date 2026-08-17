@@ -98,6 +98,46 @@ export default function DashboardPage() {
   const [netRxHistory, setNetRxHistory] = useState<number[]>([]);
   const [netTxHistory, setNetTxHistory] = useState<number[]>([]);
 
+  // Gateway: dispositivos pendientes, salud de canales/modelos, auditoria de seguridad
+  interface PendingDevice { requestId?: string; deviceId?: string; platform?: string; clientId?: string; role?: string; scopes?: string[] }
+  const [pendingDevices, setPendingDevices] = useState<PendingDevice[]>([]);
+  const [gwHealth, setGwHealth] = useState<{ channels?: { channels?: Record<string, { ok?: boolean; state?: string }>; eventLoop?: { degraded?: boolean } } | null; models?: { auth?: { missingProvidersInUse?: string[] } } | null } | null>(null);
+  const [secSummary, setSecSummary] = useState<{ critical?: number; warn?: number } | null>(null);
+  const [deviceBusy, setDeviceBusy] = useState<string | null>(null);
+
+  const loadGatewayExtras = async () => {
+    try {
+      const [dev, gw, sec] = await Promise.all([
+        fetch("/api/devices").then((r) => r.json()).catch(() => null),
+        fetch("/api/gateway-health").then((r) => r.json()).catch(() => null),
+        fetch("/api/security").then((r) => r.json()).catch(() => null),
+      ]);
+      if (dev) setPendingDevices(dev.pending || []);
+      if (gw) setGwHealth(gw);
+      if (sec) setSecSummary(sec.summary || null);
+    } catch { /* gateway no disponible */ }
+  };
+
+  useEffect(() => {
+    loadGatewayExtras();
+    const iv = setInterval(loadGatewayExtras, 60000);
+    return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleDevice = async (requestId: string, action: "approve" | "reject") => {
+    setDeviceBusy(requestId);
+    try {
+      await fetch("/api/devices", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ requestId, action }) });
+      await loadGatewayExtras();
+      showToast(action === "approve" ? "Dispositivo aprobado" : "Solicitud rechazada");
+    } catch {
+      showToast("Error al gestionar el dispositivo", "error");
+    } finally {
+      setDeviceBusy(null);
+    }
+  };
+
   // Frescura de datos
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [, setTick] = useState(0);
@@ -184,6 +224,23 @@ export default function DashboardPage() {
     systemData.systemd.filter((sv) => (sv.restarts || 0) > 5 && sv.status === "active").forEach((sv) =>
       alerts.push({ level: "warn", text: `${sv.name}: ${sv.restarts} reinicios`, href: "/system" })
     );
+  }
+
+  if (gwHealth?.channels?.eventLoop?.degraded) {
+    alerts.push({ level: "warn", text: "Event loop del gateway degradado", href: "/system" });
+  }
+  const chMap = gwHealth?.channels?.channels;
+  if (chMap) {
+    for (const [cid, c] of Object.entries(chMap)) {
+      if (c && c.ok === false) alerts.push({ level: "err", text: `Canal ${cid} caido (${c.state || "sin estado"})`, href: "/system" });
+    }
+  }
+  const missingAuth = gwHealth?.models?.auth?.missingProvidersInUse;
+  if (missingAuth && missingAuth.length > 0) {
+    alerts.push({ level: "err", text: `Auth de modelos ausente: ${missingAuth.join(", ")}`, href: "/system" });
+  }
+  if (secSummary?.critical) {
+    alerts.push({ level: "warn", text: `Seguridad: ${secSummary.critical} hallazgo critico + ${secSummary.warn || 0} avisos (security audit)`, href: "/system" });
   }
 
   return (
@@ -451,7 +508,25 @@ export default function DashboardPage() {
             )}
           </div>
           <div className="p-3 space-y-1">
-            {alerts.length === 0 && (
+            {pendingDevices.map((d, i) => (
+              <div key={d.requestId || i} className="p-2 rounded-md text-xs" style={{ backgroundColor: "var(--card-elevated)", border: "1px solid rgba(234,179,8,0.3)" }}>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Monitor className="w-3.5 h-3.5" style={{ color: "var(--warning)" }} />
+                  <span style={{ color: "var(--text-primary)", fontWeight: 500 }}>Emparejamiento pendiente</span>
+                </div>
+                <div className="mb-1.5" style={{ color: "var(--text-secondary)" }}>
+                  {d.clientId || "cliente"} · {d.platform || "?"} · rol {d.role || "?"}
+                </div>
+                {d.scopes && d.scopes.length > 0 && (
+                  <div className="mb-2 font-mono text-[10.5px]" style={{ color: "var(--text-muted)" }}>{d.scopes.join(" ")}</div>
+                )}
+                <div className="flex gap-2">
+                  <button onClick={() => d.requestId && handleDevice(d.requestId, "approve")} disabled={deviceBusy === d.requestId} className="btn-primary" style={{ height: 24, padding: "0 10px", fontSize: 11 }}>Aprobar</button>
+                  <button onClick={() => d.requestId && handleDevice(d.requestId, "reject")} disabled={deviceBusy === d.requestId} className="btn-danger" style={{ height: 24, padding: "0 10px", fontSize: 11 }}>Rechazar</button>
+                </div>
+              </div>
+            ))}
+            {alerts.length === 0 && pendingDevices.length === 0 && (
               <div className="flex items-center gap-2 p-2 text-xs" style={{ color: "var(--text-muted)" }}>
                 <CheckCircle className="w-3.5 h-3.5" style={{ color: "var(--success)" }} />
                 Sin alertas — todo en orden
