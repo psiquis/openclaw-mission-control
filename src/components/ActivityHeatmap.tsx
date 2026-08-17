@@ -20,10 +20,10 @@ interface HeatmapStats {
 function getColor(count: number, max: number): string {
   if (count === 0) return "rgba(255,255,255,0.04)";
   const ratio = count / Math.max(max, 1);
-  if (ratio < 0.25) return "rgba(255, 59, 48, 0.2)";
-  if (ratio < 0.5) return "rgba(255, 59, 48, 0.4)";
-  if (ratio < 0.75) return "rgba(255, 59, 48, 0.65)";
-  return "rgba(255, 59, 48, 0.9)";
+  if (ratio < 0.25) return "rgba(99, 102, 241, 0.25)";
+  if (ratio < 0.5) return "rgba(99, 102, 241, 0.45)";
+  if (ratio < 0.75) return "rgba(99, 102, 241, 0.65)";
+  return "rgba(99, 102, 241, 0.9)";
 }
 
 export function ActivityHeatmap() {
@@ -154,11 +154,11 @@ export function ActivityHeatmap() {
 
       {/* Legend */}
       <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", marginTop: "0.75rem" }}>
-        <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Less</span>
+        <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Menos</span>
         {[0, 0.25, 0.5, 0.75, 1].map((ratio) => (
           <div key={ratio} style={{ width: "10px", height: "10px", borderRadius: "2px", backgroundColor: getColor(Math.round(ratio * maxCount), maxCount) }} />
         ))}
-        <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>More</span>
+        <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Más</span>
       </div>
 
       {/* Top activity types */}

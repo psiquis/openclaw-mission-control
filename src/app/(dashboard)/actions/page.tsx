@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   GitBranch, RotateCcw, Trash2, BarChart3, Heart, Shield,
   Play, Loader2, X, CheckCircle, AlertCircle, Clock, Terminal,
@@ -27,45 +27,45 @@ interface QuickAction {
 const ACTIONS: QuickAction[] = [
   {
     id: "heartbeat",
-    label: "Check Heartbeat",
-    description: "Verify all services are up and the site is reachable",
+    label: "Comprobar Heartbeat",
+    description: "Verifica que todos los servicios responden y el sitio es accesible",
     icon: Heart,
     color: "var(--success)",
   },
   {
     id: "git-status",
-    label: "Git Status (All Repos)",
-    description: "Check uncommitted changes in all workspace repositories",
+    label: "Git Status (todos los repos)",
+    description: "Cambios sin commitear en todos los repositorios del workspace",
     icon: GitBranch,
     color: "#60A5FA",
   },
   {
     id: "usage-stats",
-    label: "Collect Usage Stats",
-    description: "Get disk, CPU, and memory usage summary",
+    label: "Estadisticas de uso",
+    description: "Resumen de uso de disco, CPU y memoria",
     icon: BarChart3,
     color: "#C084FC",
   },
   {
     id: "restart-gateway",
-    label: "Restart Gateway",
-    description: "Restart the OpenClaw gateway service",
+    label: "Reiniciar Gateway",
+    description: "Reinicia el servicio del gateway de OpenClaw",
     icon: RotateCcw,
     color: "var(--warning, #f59e0b)",
     dangerous: true,
   },
   {
     id: "clear-temp",
-    label: "Clear Temp Files",
-    description: "Remove temporary files and trim large PM2 logs",
+    label: "Limpiar temporales",
+    description: "Elimina archivos temporales y recorta logs grandes de PM2",
     icon: Trash2,
     color: "var(--error)",
     dangerous: true,
   },
   {
     id: "npm-audit",
-    label: "NPM Security Audit",
-    description: "Check for vulnerabilities in mission-control dependencies",
+    label: "Auditoria NPM",
+    description: "Busca vulnerabilidades en las dependencias de mission-control",
     icon: Shield,
     color: "#4ADE80",
   },
@@ -76,6 +76,30 @@ export default function ActionsPage() {
   const [results, setResults] = useState<Record<string, ActionResult>>({});
   const [selectedResult, setSelectedResult] = useState<ActionResult | null>(null);
   const [confirmAction, setConfirmAction] = useState<QuickAction | null>(null);
+
+  // Cargar la ultima ejecucion registrada de cada accion
+  useEffect(() => {
+    fetch("/api/activities?type=command&limit=100")
+      .then((r) => r.json())
+      .then((data) => {
+        const acts = data.activities || [];
+        const found: Record<string, ActionResult> = {};
+        for (const a of acts) {
+          const m = /^Quick action: ([a-z0-9-]+)/.exec(a.description || "");
+          if (m && !found[m[1]]) {
+            found[m[1]] = {
+              action: m[1],
+              status: a.status === "success" ? "success" : "error",
+              output: "",
+              duration_ms: a.duration_ms || 0,
+              timestamp: a.timestamp,
+            };
+          }
+        }
+        if (Object.keys(found).length) setResults((prev) => ({ ...found, ...prev }));
+      })
+      .catch(() => {});
+  }, []);
 
   const runAction = async (action: QuickAction) => {
     if (action.dangerous) {
@@ -102,7 +126,7 @@ export default function ActionsPage() {
       const result: ActionResult = {
         action: action.id,
         status: "error",
-        output: "Network error",
+        output: "Error de red",
         duration_ms: 0,
         timestamp: new Date().toISOString(),
       };
@@ -120,10 +144,10 @@ export default function ActionsPage() {
           className="text-3xl font-bold mb-2"
           style={{ fontFamily: "var(--font-heading)", color: "var(--text-primary)" }}
         >
-          Quick Actions Hub
+          Quick Actions
         </h1>
         <p style={{ color: "var(--text-secondary)" }}>
-          Run common maintenance and diagnostic tasks with one click
+          Tareas de mantenimiento y diagnostico en un clic
         </p>
       </div>
 
@@ -153,8 +177,11 @@ export default function ActionsPage() {
                   <Icon className="w-5 h-5" style={{ color: action.color }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
+                  <h3 className="font-semibold text-sm flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
                     {action.label}
+                    {action.dangerous && (
+                      <span className="badge badge-warning" title="Requiere confirmacion: afecta al servicio">requiere confirmacion</span>
+                    )}
                   </h3>
                   <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
                     {action.description}
@@ -178,7 +205,7 @@ export default function ActionsPage() {
                     <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
                   )}
                   <span className="flex-1 truncate">
-                    {result.status === "success" ? "Success" : "Failed"} · {result.duration_ms}ms
+                    {result.status === "success" ? "Correcto" : "Fallo"} · {result.duration_ms}ms
                   </span>
                   <Clock className="w-3 h-3 flex-shrink-0" />
                   <span style={{ color: "var(--text-muted)" }}>
@@ -199,9 +226,9 @@ export default function ActionsPage() {
                   gap: "0.5rem",
                   padding: "0.625rem",
                   borderRadius: "0.5rem",
-                  backgroundColor: isRunning ? `color-mix(in srgb, ${action.color} 20%, transparent)` : `color-mix(in srgb, ${action.color} 12%, transparent)`,
-                  color: action.color,
-                  border: `1px solid color-mix(in srgb, ${action.color} 25%, transparent)`,
+                  backgroundColor: action.dangerous ? "var(--negative-soft)" : "var(--surface-elevated)",
+                  color: action.dangerous ? "var(--negative)" : "var(--text-secondary)",
+                  border: `1px solid ${action.dangerous ? "rgba(239,68,68,0.3)" : "var(--border-strong)"}`,
                   cursor: isRunning || running !== null ? "not-allowed" : "pointer",
                   fontSize: "0.875rem",
                   fontWeight: 600,
@@ -212,12 +239,12 @@ export default function ActionsPage() {
                 {isRunning ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Running...
+                    Ejecutando…
                   </>
                 ) : (
                   <>
                     <Play className="w-4 h-4" />
-                    Run
+                    Ejecutar
                     {action.dangerous && <span style={{ fontSize: "0.7rem", opacity: 0.7 }}></span>}
                   </>
                 )}
@@ -227,12 +254,12 @@ export default function ActionsPage() {
         })}
       </div>
 
-      {/* Recent Results */}
+      {/* Resultados recientes */}
       {Object.keys(results).length > 0 && (
         <div className="rounded-xl" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
           <div className="p-4 border-b" style={{ borderColor: "var(--border)" }}>
             <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-              Recent Results
+              Resultados recientes
             </h2>
           </div>
           <div className="divide-y" style={{ borderColor: "var(--border)" }}>
@@ -299,23 +326,23 @@ export default function ActionsPage() {
             border: "1px solid var(--border)",
           }}>
             <h3 style={{ color: "var(--text-primary)", marginBottom: "0.75rem", fontWeight: 600 }}>
-               Confirm: {confirmAction.label}
+              Confirmar: {confirmAction.label}
             </h3>
             <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
-              This action may affect running services. Are you sure?
+              Esta accion puede afectar a servicios en ejecucion. ¿Continuar?
             </p>
             <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
               <button
                 onClick={() => setConfirmAction(null)}
                 style={{ padding: "0.5rem 1rem", borderRadius: "0.5rem", background: "var(--card-elevated)", color: "var(--text-secondary)", border: "none", cursor: "pointer" }}
               >
-                Cancel
+                Cancelar
               </button>
               <button
                 onClick={() => executeAction(confirmAction)}
                 style={{ padding: "0.5rem 1rem", borderRadius: "0.5rem", background: "var(--error, #ef4444)", color: "#fff", border: "none", cursor: "pointer", fontWeight: 600 }}
               >
-                Run Anyway
+                Ejecutar igualmente
               </button>
             </div>
           </div>

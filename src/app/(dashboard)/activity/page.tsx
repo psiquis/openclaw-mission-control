@@ -80,10 +80,10 @@ const statusConfig: Record<string, { icon: React.ComponentType<{ className?: str
 const allTypes = ["file", "search", "message", "command", "security", "build", "task", "cron", "memory"];
 
 const datePresets = [
-  { label: "Today", days: 0 },
-  { label: "Last 7 days", days: 7 },
-  { label: "Last 30 days", days: 30 },
-  { label: "All time", days: -1 },
+  { label: "Hoy", days: 0 },
+  { label: "7 dias", days: 7 },
+  { label: "30 dias", days: 30 },
+  { label: "Todo", days: -1 },
 ];
 
 function formatDuration(ms: number): string {
@@ -243,9 +243,9 @@ export default function ActivityPage() {
             color: 'var(--text-primary)',
             fontFamily: 'var(--font-heading)'
           }}>
-            Activity Log
+            Registro de actividad
           </h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Complete history of agent actions</p>
+          <p style={{ color: 'var(--text-secondary)' }}>Historial completo de acciones de los agentes</p>
         </div>
         <a
           href="/api/activities?format=csv&limit=10000"
@@ -259,24 +259,22 @@ export default function ActivityPage() {
           }}
         >
           <Download className="w-4 h-4" />
-          Export CSV
+          Exportar CSV
         </a>
       </div>
 
-      {/* Activity Heatmap */}
-      <div className="mb-4 md:mb-6">
-        <ActivityHeatmap />
-      </div>
+      {/* Activity Heatmap (plegable) */}
+      <details className="mb-4">
+        <summary style={{ cursor: "pointer", fontSize: "12px", color: "var(--text-secondary)", padding: "6px 0", userSelect: "none" }}>
+          Timeline de actividad (52 semanas)
+        </summary>
+        <div style={{ marginTop: "8px" }}><ActivityHeatmap /></div>
+      </details>
 
       {/* Date Range Picker */}
       <div className="p-3 md:p-4 mb-4 md:mb-6 rounded-xl" style={{ 
         backgroundColor: 'var(--card)'
       }}>
-        <div className="flex items-center gap-3 md:gap-4 mb-3 md:mb-4">
-          <Calendar className="w-4 h-4 md:w-5 md:h-5" style={{ color: 'var(--text-secondary)' }} />
-          <span className="text-xs md:text-sm" style={{ color: 'var(--text-secondary)' }}>Date Range</span>
-        </div>
-        
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
           {datePresets.map((preset, index) => (
             <button
@@ -288,9 +286,9 @@ export default function ActivityPage() {
                 fontSize: '0.875rem',
                 fontWeight: 500,
                 transition: 'all 0.2s',
-                backgroundColor: activePreset === index ? 'rgba(255, 59, 48, 0.2)' : 'rgba(42, 42, 42, 0.5)',
+                backgroundColor: activePreset === index ? 'var(--accent-soft)' : 'rgba(42, 42, 42, 0.5)',
                 color: activePreset === index ? 'var(--accent)' : 'var(--text-secondary)',
-                border: activePreset === index ? '1px solid rgba(255, 59, 48, 0.3)' : '1px solid transparent',
+                border: activePreset === index ? '1px solid rgba(99, 102, 241, 0.35)' : '1px solid transparent',
                 cursor: 'pointer'
               }}
             >
@@ -318,7 +316,7 @@ export default function ActivityPage() {
                 outline: 'none'
               }}
             />
-            <span style={{ color: 'var(--text-muted)' }}>to</span>
+            <span style={{ color: 'var(--text-muted)' }}>a</span>
             <input
               type="date"
               value={endDate}
@@ -344,27 +342,12 @@ export default function ActivityPage() {
       <div className="p-3 md:p-4 mb-4 md:mb-6 rounded-xl" style={{ 
         backgroundColor: 'var(--card)'
       }}>
-        <div className="flex items-center gap-3 md:gap-4 mb-3 md:mb-4">
-          <Filter className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Filter by Type</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
           {selectedTypes.size > 0 && (
-            <button
-              onClick={clearTypeFilters}
-              style={{
-                fontSize: '0.75rem',
-                color: 'var(--accent)',
-                marginLeft: 'auto',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              Clear all
+            <button onClick={clearTypeFilters} style={{ fontSize: '0.75rem', color: 'var(--accent-fg)', background: 'none', border: 'none', cursor: 'pointer', marginRight: '0.25rem' }}>
+              Limpiar filtros
             </button>
           )}
-        </div>
-        
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
           {allTypes.map((type) => {
             const TypeIcon = typeIcons[type] || typeIcons.default;
             const colorVar = typeColorVars[type] || "--text-secondary";
@@ -412,10 +395,10 @@ export default function ActivityPage() {
             cursor: 'pointer'
           }}
         >
-          <option value="all">All Statuses</option>
-          <option value="success">Success</option>
-          <option value="error">Error</option>
-          <option value="pending">Pending</option>
+          <option value="all">Todos los estados</option>
+          <option value="success">Correctas</option>
+          <option value="error">Con error</option>
+          <option value="pending">Pendientes</option>
         </select>
 
         <button
@@ -434,11 +417,11 @@ export default function ActivityPage() {
           }}
         >
           <ArrowUpDown className="w-4 h-4" />
-          <span>{sort === "newest" ? "Newest first" : "Oldest first"}</span>
+          <span>{sort === "newest" ? "Recientes primero" : "Antiguas primero"}</span>
         </button>
 
         <div className="text-xs md:text-sm w-full md:w-auto md:ml-auto mt-2 md:mt-0" style={{ color: 'var(--text-muted)' }}>
-          Showing {activities.length} of {total} activities
+          Mostrando {activities.length} de {total}
         </div>
       </div>
 
@@ -447,7 +430,7 @@ export default function ActivityPage() {
         {activities.length === 0 && (
           <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-secondary)' }}>
             <Zap className="w-12 h-12" style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-            <p>No activities found</p>
+            <p>Sin actividades para estos filtros</p>
           </div>
         )}
 
@@ -529,7 +512,7 @@ export default function ActivityPage() {
                       gap: '0.25rem'
                     }}>
                       <ChevronDown className="w-3 h-3" />
-                      View metadata
+                      Ver metadatos
                     </summary>
                     <pre style={{
                       marginTop: '0.5rem',

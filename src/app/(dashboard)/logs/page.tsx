@@ -83,6 +83,12 @@ export default function LogsPage() {
     }
   }, [lines, autoScroll]);
 
+  // Auto-stream al entrar o cambiar de servicio
+  useEffect(() => {
+    startStream();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedService]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -112,10 +118,10 @@ export default function LogsPage() {
       {/* Header */}
       <div style={{ padding: "1.5rem 1.5rem 1rem" }}>
         <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "1.75rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "0.25rem" }}>
-          Log Viewer
+          Visor de logs
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-          Real-time log streaming from services
+          Streaming de logs de los servicios en tiempo real
         </p>
       </div>
 
@@ -152,7 +158,7 @@ export default function LogsPage() {
         <div style={{ marginLeft: "auto", display: "flex", gap: "0.5rem", alignItems: "center" }}>
           {/* Filter */}
           <input
-            placeholder="Filter logs..."
+            placeholder="Filtrar logs…"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             style={{
@@ -213,7 +219,7 @@ export default function LogsPage() {
             {streaming ? (
               <>
                 <Square className="w-3.5 h-3.5" />
-                Stop
+                Pausar
               </>
             ) : (
               <>
@@ -272,7 +278,7 @@ export default function LogsPage() {
         {filteredLines.length === 0 ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#8b949e" }}>
             <Terminal className="w-12 h-12 mb-3 opacity-30" />
-            <p>{streaming ? "Waiting for logs..." : "Click 'Stream' to start live log viewer"}</p>
+            <p>{streaming ? "Waiting for logs..." : "Conectando con el servicio…"}</p>
           </div>
         ) : (
           filteredLines.map((l) => (

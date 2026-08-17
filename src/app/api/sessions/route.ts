@@ -67,7 +67,7 @@ function parseSessionKey(key: string): {
 
   // Skip the ":run:" duplicate entries - these are redundant
   if (parts.includes('run')) {
-    return { type: 'unknown', typeLabel: 'Run Entry', typeEmoji: '🔁', isRunEntry: true };
+    return { type: 'unknown', typeLabel: 'Run Entry', typeEmoji: '', isRunEntry: true };
   }
 
   if (parts[2] === 'main') {
@@ -78,7 +78,7 @@ function parseSessionKey(key: string): {
     return {
       type: 'cron',
       typeLabel: 'Cron Job',
-      typeEmoji: '🕐',
+      typeEmoji: '',
       cronJobId: parts[3],
       isRunEntry: false,
     };
@@ -88,7 +88,7 @@ function parseSessionKey(key: string): {
     return {
       type: 'subagent',
       typeLabel: 'Sub-agent',
-      typeEmoji: '🤖',
+      typeEmoji: '',
       subagentId: parts[3],
       isRunEntry: false,
     };
@@ -98,7 +98,7 @@ function parseSessionKey(key: string): {
   return {
     type: 'direct',
     typeLabel: parts[2] ? `${parts[2].charAt(0).toUpperCase() + parts[2].slice(1)} Chat` : 'Direct Chat',
-    typeEmoji: '💬',
+    typeEmoji: '',
     isRunEntry: false,
   };
 }

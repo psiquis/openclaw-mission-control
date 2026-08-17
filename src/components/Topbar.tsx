@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search } from "lucide-react";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
+import { CommandPalette } from "@/components/CommandPalette";
 
 const LABELS: Record<string, string> = {
   "": "Dashboard",
@@ -50,12 +50,17 @@ export function Topbar() {
         )}
       </div>
       <div style={{ flex: 1 }} />
-      <Link href="/search" className="topbar-search">
+      <button
+        onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
+        className="topbar-search"
+        aria-label="Abrir paleta de comandos"
+      >
         <Search style={{ width: 13, height: 13, flexShrink: 0 }} />
-        <span>Search</span>
+        <span>Buscar…</span>
         <kbd>⌘K</kbd>
-      </Link>
+      </button>
       <NotificationDropdown />
+      <CommandPalette />
     </header>
   );
 }

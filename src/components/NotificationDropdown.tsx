@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Bell, Check, CheckCheck, Trash2, X, Info, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
 
 export interface Notification {
   id: string;
@@ -430,7 +431,7 @@ export function NotificationDropdown() {
                           color: "var(--text-muted)",
                         }}
                       >
-                        {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true, locale: es })}
                       </span>
 
                       {/* Action Buttons */}

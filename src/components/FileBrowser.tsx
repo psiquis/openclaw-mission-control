@@ -287,6 +287,26 @@ export function FileBrowser({ workspace, path, onNavigate, viewMode = "list" }: 
   const [newFileName, setNewFileName] = useState("");
   const [showNewFile, setShowNewFile] = useState(false);
   const [actionMenu, setActionMenu] = useState<string | null>(null);
+  const [filter, setFilter] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "size" | "modified">("name");
+  const [sortDir, setSortDir] = useState<1 | -1>(1);
+
+  const toggleSort = (col: "name" | "size" | "modified") => {
+    if (sortBy === col) setSortDir((d) => (d === 1 ? -1 : 1));
+    else { setSortBy(col); setSortDir(1); }
+  };
+
+  const visibleItems = items
+    .filter((it) => !filter || it.name.toLowerCase().includes(filter.toLowerCase()))
+    .slice()
+    .sort((a, b) => {
+      if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
+      let cmp = 0;
+      if (sortBy === "name") cmp = a.name.localeCompare(b.name);
+      else if (sortBy === "size") cmp = a.size - b.size;
+      else cmp = new Date(a.modified).getTime() - new Date(b.modified).getTime();
+      return cmp * sortDir;
+    });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadItems = useCallback(() => {
@@ -501,6 +521,16 @@ export function FileBrowser({ workspace, path, onNavigate, viewMode = "list" }: 
           <FilePlus className="w-3.5 h-3.5" /> New File
         </button>
 
+        {/* Filtro local */}
+        <input
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder="Filtrar archivos…"
+          aria-label="Filtrar archivos por nombre"
+          className="input"
+          style={{ marginLeft: "auto", width: "200px", padding: "5px 10px", fontSize: "12px" }}
+        />
+
         <button
           onClick={loadItems}
           title="Refresh"
@@ -578,19 +608,24 @@ export function FileBrowser({ workspace, path, onNavigate, viewMode = "list" }: 
         )}
 
         {/* List View */}
+        {viewMode === "list" && items.length > 0 && visibleItems.length === 0 && !dragging && (
+          <div style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)", fontSize: "13px" }}>
+            Nada coincide con «{filter}»
+          </div>
+        )}
         {viewMode === "list" && items.length > 0 && !dragging && (
           <div className="rounded-xl overflow-hidden" style={{ backgroundColor: "var(--card)" }}>
             <div
               className="hidden md:grid grid-cols-12 gap-4 px-4 md:px-6 py-2 md:py-3 text-xs md:text-sm font-medium"
               style={{ backgroundColor: "var(--background)", color: "var(--text-secondary)" }}
             >
-              <div className="col-span-6">Name</div>
-              <div className="col-span-2">Size</div>
-              <div className="col-span-3">Modified</div>
+              <div className="col-span-6 cursor-pointer select-none" onClick={() => toggleSort("name")}>Nombre {sortBy === "name" ? (sortDir === 1 ? "↑" : "↓") : ""}</div>
+              <div className="col-span-2 cursor-pointer select-none" onClick={() => toggleSort("size")}>Tamaño {sortBy === "size" ? (sortDir === 1 ? "↑" : "↓") : ""}</div>
+              <div className="col-span-3 cursor-pointer select-none" onClick={() => toggleSort("modified")}>Modificado {sortBy === "modified" ? (sortDir === 1 ? "↑" : "↓") : ""}</div>
               <div className="col-span-1"></div>
             </div>
 
-            {items.map((item) => {
+            {visibleItems.map((item) => {
               const Icon = getFileIcon(item.name, item.type);
               const iconColor = getFileColor(item.name, item.type);
               const filePath = path ? `${path}/${item.name}` : item.name;
@@ -663,7 +698,7 @@ export function FileBrowser({ workspace, path, onNavigate, viewMode = "list" }: 
         {/* Grid View */}
         {viewMode === "grid" && items.length > 0 && !dragging && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-4 p-4">
-            {items.map((item) => {
+            {visibleItems.map((item) => {
               const Icon = getFileIcon(item.name, item.type);
               const iconColor = getFileColor(item.name, item.type);
 
@@ -680,7 +715,7 @@ export function FileBrowser({ workspace, path, onNavigate, viewMode = "list" }: 
                   <span className="text-xs md:text-sm text-center truncate w-full" style={{ color: "var(--text-primary)" }} title={item.name}>
                     {item.name}
                   </span>
-                  <span className="text-[10px] md:text-xs mt-0.5 md:mt-1" style={{ color: "var(--text-muted)" }}>
+                  <span className="text-[11px] md:text-xs mt-0.5 md:mt-1" style={{ color: "var(--text-muted)" }}>
                     {item.type === "folder" ? "Folder" : formatFileSize(item.size)}
                   </span>
 

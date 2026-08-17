@@ -196,7 +196,7 @@ export function CronJobCard({ job, onToggle, onEdit, onDelete, onRun, onDuplicat
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
               <span
-                className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded font-semibold tracking-wide"
+                className="text-[11px] md:text-xs px-1.5 md:px-2 py-0.5 rounded font-semibold tracking-wide"
                 style={{
                   backgroundColor: `color-mix(in srgb, ${agentColor} 20%, transparent)`,
                   color: agentColor,
@@ -216,7 +216,7 @@ export function CronJobCard({ job, onToggle, onEdit, onDelete, onRun, onDuplicat
                 {job.name}
               </h3>
               <span
-                className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full whitespace-nowrap"
+                className="text-[11px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full whitespace-nowrap"
                 style={{
                   backgroundColor: job.enabled
                     ? "color-mix(in srgb, var(--success) 20%, transparent)"
@@ -229,7 +229,7 @@ export function CronJobCard({ job, onToggle, onEdit, onDelete, onRun, onDuplicat
               {/* Category badge */}
               {job.category && (
                 <span
-                  className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full whitespace-nowrap"
+                  className="text-[11px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full whitespace-nowrap"
                   style={{
                     backgroundColor: "rgba(42, 42, 42, 0.5)",
                     color: "var(--text-muted)",
@@ -241,7 +241,7 @@ export function CronJobCard({ job, onToggle, onEdit, onDelete, onRun, onDuplicat
               {/* Payload kind badge */}
               {job.payloadKind && (
                 <span
-                  className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full whitespace-nowrap"
+                  className="text-[11px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full whitespace-nowrap"
                   style={{
                     backgroundColor:
                       job.payloadKind === "agentTurn"
@@ -307,7 +307,7 @@ export function CronJobCard({ job, onToggle, onEdit, onDelete, onRun, onDuplicat
           <div className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm">
             <Clock className="w-3.5 h-3.5 md:w-4 md:h-4" style={{ color: "var(--info)" }} />
             <code
-              className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded"
+              className="text-[11px] md:text-xs px-1.5 md:px-2 py-0.5 rounded"
               style={{
                 backgroundColor: "rgba(42, 42, 42, 0.5)",
                 color: "var(--text-secondary)",
@@ -324,7 +324,7 @@ export function CronJobCard({ job, onToggle, onEdit, onDelete, onRun, onDuplicat
           {job.model && (
             <div className="flex items-center gap-1 text-xs md:text-sm">
               <span
-                className="text-[10px] md:text-xs px-1.5 py-0.5 rounded"
+                className="text-[11px] md:text-xs px-1.5 py-0.5 rounded"
                 style={{
                   backgroundColor: "rgba(192,132,252,0.15)",
                   color: "#C084FC",

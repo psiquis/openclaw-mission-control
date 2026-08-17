@@ -59,6 +59,16 @@ export default function AgentsPage() {
     }
   };
 
+
+  const deriveState = (agent: Agent): { label: string; color: string } => {
+    if (agent.status === "online") return { label: "activo", color: "#4ade80" };
+    if (agent.lastActivity) {
+      const ageH = (Date.now() - new Date(agent.lastActivity).getTime()) / 3600000;
+      if (ageH < 24) return { label: "en reposo", color: "var(--warning)" };
+    }
+    return { label: "inactivo", color: "var(--text-muted)" };
+  };
+
   const formatLastActivity = (timestamp?: string) => {
     if (!timestamp) return "Never";
     const date = new Date(timestamp);
@@ -101,7 +111,7 @@ export default function AgentsPage() {
           Agents
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
-          Multi-agent system overview • {agents.length} agents configured
+          Vision general del sistema multi-agente • {agents.length} agentes configurados
         </p>
       </div>
 
@@ -186,27 +196,23 @@ export default function AgentsPage() {
                     <Circle
                       className="w-2 h-2"
                       style={{
-                        fill: agent.status === "online" ? "#4ade80" : "#6b7280",
-                        color: agent.status === "online" ? "#4ade80" : "#6b7280",
+                        fill: deriveState(agent).color,
+                        color: deriveState(agent).color,
                       }}
                     />
                     <span
                       className="text-xs font-medium"
-                      style={{
-                        color:
-                          agent.status === "online"
-                            ? "#4ade80"
-                            : "var(--text-muted)",
-                      }}
+                      title="activo: proceso de chat en marcha - en reposo: sin proceso pero con actividad en 24h - inactivo: sin actividad reciente"
+                      style={{ color: deriveState(agent).color }}
                     >
-                      {agent.status}
+                      {deriveState(agent).label}
                     </span>
                   </div>
                 </div>
               </div>
 
               {agent.botToken && (
-                <div title="Telegram Bot Connected">
+                <div title="Bot de Telegram conectado">
                   <MessageSquare
                     className="w-5 h-5"
                     style={{ color: "#0088cc" }}
@@ -271,7 +277,7 @@ export default function AgentsPage() {
                       className="text-xs font-medium mb-1"
                       style={{ color: "var(--text-muted)" }}
                     >
-                      DM Policy
+                      <span title="Politica de mensajes directos del gateway. pairing = requiere emparejamiento previo del chat">DM Policy</span>
                     </div>
                     <div
                       className="text-sm font-medium"
@@ -344,7 +350,7 @@ export default function AgentsPage() {
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4" style={{ color: "var(--text-muted)" }} />
                   <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    Last activity: {formatLastActivity(agent.lastActivity)}
+                    Ultima actividad: {formatLastActivity(agent.lastActivity)}
                   </span>
                 </div>
                 {agent.activeSessions > 0 && (

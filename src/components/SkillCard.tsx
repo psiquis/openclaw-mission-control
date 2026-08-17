@@ -47,7 +47,7 @@ export default function SkillCard({ skill, onClick }: SkillCardProps) {
             {skill.name}
           </h3>
           {!skill.enabled && (
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ color: 'var(--error)', backgroundColor: 'color-mix(in srgb, var(--error) 15%, transparent)' }}>
+            <span className="text-[11px] font-medium px-1.5 py-0.5 rounded" style={{ color: 'var(--error)', backgroundColor: 'color-mix(in srgb, var(--error) 15%, transparent)' }}>
               disabled
             </span>
           )}
@@ -89,7 +89,7 @@ export default function SkillCard({ skill, onClick }: SkillCardProps) {
               <AlertTriangle className="w-3 h-3" /> {skill.error_count}
             </span>
           )}
-          <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>
+          <span className="ml-auto text-[11px]" style={{ color: 'var(--text-muted)' }}>
             {new Date(skill.updated_at).toLocaleDateString()}
           </span>
         </div>

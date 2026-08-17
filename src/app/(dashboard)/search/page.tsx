@@ -13,7 +13,7 @@ export default function SearchPage() {
           Global Search
         </h1>
         <p className="text-sm md:text-base" style={{ color: "var(--text-secondary)" }}>
-          Search across activities, tasks, and indexed documents
+          Busca en actividades, tareas y documentos indexados
         </p>
       </div>
 

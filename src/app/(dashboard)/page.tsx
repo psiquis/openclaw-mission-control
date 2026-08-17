@@ -3,11 +3,12 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { StatsCard } from "@/components/StatsCard";
 import { ActivityFeed } from "@/components/ActivityFeed";
+import { CopyButton } from "@/components/CopyButton";
 import {
   Activity, CheckCircle, XCircle, Zap, Bot, MessageSquare, Users,
   Cpu, MemoryStick, HardDrive, Network, Server, ShieldCheck, Wifi, Monitor,
   Play, Square, RotateCw, Loader2, Terminal as TerminalIcon, X as XIcon,
-  ArrowDown, ArrowUp, Blocks, CalendarClock,
+  ArrowDown, ArrowUp,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -97,6 +98,14 @@ export default function DashboardPage() {
   const [netRxHistory, setNetRxHistory] = useState<number[]>([]);
   const [netTxHistory, setNetTxHistory] = useState<number[]>([]);
 
+  // Frescura de datos
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const iv = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(iv);
+  }, []);
+
   // System fullscreen modal
   const [showSystemFull, setShowSystemFull] = useState(false);
 
@@ -119,6 +128,7 @@ export default function DashboardPage() {
         if (res.ok) {
           const data: SystemData = await res.json();
           setSystemData(data);
+          setLastUpdated(Date.now());
           setCpuHistory(prev => [...prev.slice(-(HISTORY_SIZE - 1)), data.cpu.usage]);
           const ramPct = (data.ram.used / data.ram.total) * 100;
           setRamHistory(prev => [...prev.slice(-(HISTORY_SIZE - 1)), ramPct]);
@@ -146,7 +156,7 @@ export default function DashboardPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Action failed");
       if (action === "logs") setLogsModal({ name: svc.name, backend: svc.backend || "pm2", content: data.output, loading: false });
-      else { showToast(`${svc.name}: ${action} successful`); setTimeout(async () => { const r = await fetch("/api/system/monitor"); if (r.ok) setSystemData(await r.json()); }, 2000); }
+      else { showToast(`${svc.name}: ${action} correcto`); setTimeout(async () => { const r = await fetch("/api/system/monitor"); if (r.ok) setSystemData(await r.json()); }, 2000); }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Action failed";
       if (action === "logs") setLogsModal({ name: svc.name, backend: svc.backend || "pm2", content: `Error: ${msg}`, loading: false });
@@ -159,6 +169,23 @@ export default function DashboardPage() {
   const ramColor = ramPercent < 60 ? "var(--success)" : ramPercent < 85 ? "var(--warning)" : "var(--error)";
   const diskColor = systemData ? (systemData.disk.percent < 60 ? "var(--success)" : systemData.disk.percent < 85 ? "var(--warning)" : "var(--error)") : "var(--text-muted)";
 
+  // Alertas derivadas del estado actual
+  const alerts: Array<{ level: "err" | "warn"; text: string; href: string }> = [];
+  if (systemData) {
+    systemData.systemd.filter((sv) => sv.status === "failed").forEach((sv) =>
+      alerts.push({ level: "err", text: `Servicio ${sv.name} en estado failed`, href: "/system" })
+    );
+    if (!systemData.tailscale.active) alerts.push({ level: "err", text: "Tailscale VPN inactiva", href: "/system" });
+    if (!systemData.firewall.active) alerts.push({ level: "err", text: "Firewall (UFW) inactivo", href: "/system" });
+    if (systemData.disk.percent >= 85) alerts.push({ level: "warn", text: `Disco al ${systemData.disk.percent.toFixed(0)}%`, href: "/system" });
+    if (systemData.cpu.usage >= 90) alerts.push({ level: "warn", text: `CPU al ${systemData.cpu.usage}%`, href: "/system" });
+    const ramP = (systemData.ram.used / systemData.ram.total) * 100;
+    if (ramP >= 90) alerts.push({ level: "warn", text: `RAM al ${ramP.toFixed(0)}%`, href: "/system" });
+    systemData.systemd.filter((sv) => (sv.restarts || 0) > 5 && sv.status === "active").forEach((sv) =>
+      alerts.push({ level: "warn", text: `${sv.name}: ${sv.restarts} reinicios`, href: "/system" })
+    );
+  }
+
   return (
     <div className="p-4 md:p-8">
       {/* Toast */}
@@ -170,11 +197,17 @@ export default function DashboardPage() {
 
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold mb-1" style={{ fontFamily: "var(--font-heading)", color: "var(--text-primary)",  }}>
-            Dashboard
-          </h1>
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Overview of your OpenClaw agent fleet</p>
+        <div className="flex items-center gap-3 text-xs" style={{ color: "var(--text-muted)" }}>
+          <span className="flex items-center gap-1.5" style={{ color: "var(--success)" }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--success)" }} />
+            En vivo
+          </span>
+          {lastUpdated && (
+            <span className="tabular" style={{ fontFamily: "var(--font-mono)" }}>
+              actualizado hace {Math.max(0, Math.round((Date.now() - lastUpdated) / 1000))} s
+            </span>
+          )}
+          {systemData && <span>servicios {systemData.systemd.filter((x) => x.status === "active").length}/{systemData.systemd.length}</span>}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -185,19 +218,15 @@ export default function DashboardPage() {
             <Server className="w-3.5 h-3.5" />
             System Monitor
           </button>
-          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: "rgba(34,197,94,0.12)", color: "var(--success)" }}>
-            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--success)" }} />
-            Live
-          </span>
         </div>
       </div>
 
       {/* Activity Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <StatsCard title="Total Activities" value={stats.total.toLocaleString()} icon={<Activity className="w-5 h-5" />} iconColor="var(--info)" />
-        <StatsCard title="Today" value={stats.today.toLocaleString()} icon={<Zap className="w-5 h-5" />} iconColor="var(--accent)" />
-        <StatsCard title="Successful" value={stats.success.toLocaleString()} icon={<CheckCircle className="w-5 h-5" />} iconColor="var(--success)" />
-        <StatsCard title="Errors" value={stats.error.toLocaleString()} icon={<XCircle className="w-5 h-5" />} iconColor="var(--error)" />
+        <StatsCard title="Actividades totales" value={stats.total.toLocaleString()} icon={<Activity className="w-5 h-5" />} iconColor="var(--info)" />
+        <StatsCard title="Hoy" value={stats.today.toLocaleString()} icon={<Zap className="w-5 h-5" />} iconColor="var(--accent)" />
+        <StatsCard title="Correctas" value={stats.success.toLocaleString()} icon={<CheckCircle className="w-5 h-5" />} iconColor="var(--success)" />
+        <StatsCard title="Errores" value={stats.error.toLocaleString()} icon={<XCircle className="w-5 h-5" />} iconColor="var(--error)" />
       </div>
 
       {/* System Metrics with Sparklines */}
@@ -213,7 +242,7 @@ export default function DashboardPage() {
               <span className="text-lg font-bold font-mono" style={{ color: cpuColor }}>{systemData.cpu.usage}%</span>
             </div>
             <Sparkline data={cpuHistory} color={cpuColor} max={100} />
-            <div className="flex justify-between mt-1 text-[10px]" style={{ color: "var(--text-muted)" }}>
+            <div className="flex justify-between mt-1 text-[11px]" style={{ color: "var(--text-muted)" }}>
               <span>{systemData.cpu.cores.length} cores</span>
               <span>Load: {systemData.cpu.loadAvg[0].toFixed(2)}</span>
             </div>
@@ -229,7 +258,7 @@ export default function DashboardPage() {
               <span className="text-lg font-bold font-mono" style={{ color: ramColor }}>{ramPercent.toFixed(0)}%</span>
             </div>
             <Sparkline data={ramHistory} color={ramColor} max={100} />
-            <div className="flex justify-between mt-1 text-[10px]" style={{ color: "var(--text-muted)" }}>
+            <div className="flex justify-between mt-1 text-[11px]" style={{ color: "var(--text-muted)" }}>
               <span>{systemData.ram.used.toFixed(1)}GB used</span>
               <span>{systemData.ram.total.toFixed(1)}GB total</span>
             </div>
@@ -247,7 +276,7 @@ export default function DashboardPage() {
             <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: "var(--card-elevated)" }}>
               <div className="h-full transition-all duration-500" style={{ width: `${systemData.disk.percent}%`, backgroundColor: diskColor }} />
             </div>
-            <div className="flex justify-between mt-2 text-[10px]" style={{ color: "var(--text-muted)" }}>
+            <div className="flex justify-between mt-2 text-[11px]" style={{ color: "var(--text-muted)" }}>
               <span>{systemData.disk.used.toFixed(1)}GB used</span>
               <span>{systemData.disk.total.toFixed(1)}GB total</span>
             </div>
@@ -265,7 +294,7 @@ export default function DashboardPage() {
               <Sparkline data={netRxHistory} color="#22C55E" height={18} />
               <Sparkline data={netTxHistory} color="#6366F1" height={18} />
             </div>
-            <div className="flex justify-between mt-1 text-[10px]" style={{ color: "var(--text-muted)" }}>
+            <div className="flex justify-between mt-1 text-[11px]" style={{ color: "var(--text-muted)" }}>
               <span><ArrowDown className="w-3 h-3 inline" style={{ color: "var(--success)" }} /> {systemData.network.rx.toFixed(2)} MB/s</span>
               <span><ArrowUp className="w-3 h-3 inline" style={{ color: "var(--accent)" }} /> {systemData.network.tx.toFixed(2)} MB/s</span>
             </div>
@@ -280,9 +309,9 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4" style={{ color: "var(--accent)" }} />
-              <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Agents</h2>
+              <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Agentes</h2>
             </div>
-            <Link href="/agents" className="text-xs font-medium" style={{ color: "var(--accent)" }}>View all</Link>
+            <Link href="/agents" className="text-xs font-medium" style={{ color: "var(--accent)" }}>Ver todo</Link>
           </div>
           <div className="p-3 space-y-2">
             {agents.map(agent => (
@@ -290,7 +319,7 @@ export default function DashboardPage() {
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: agent.status === "online" ? "var(--success)" : "var(--text-muted)" }} />
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-semibold truncate" style={{ color: "var(--text-primary)" }}>{agent.name}</div>
-                  <div className="text-[10px] truncate" style={{ color: "var(--text-muted)" }}>
+                  <div className="text-[11px] truncate" style={{ color: "var(--text-muted)" }}>
                     <Bot className="w-3 h-3 inline mr-1" />{agent.model.split('/').pop()}
                   </div>
                 </div>
@@ -307,7 +336,7 @@ export default function DashboardPage() {
               {(["hardware", "services"] as const).map(t => (
                 <button key={t} onClick={() => setSysTab(t)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" style={{ backgroundColor: sysTab === t ? "var(--accent-soft)" : "transparent", color: sysTab === t ? "var(--accent)" : "var(--text-secondary)" }}>
                   {t === "hardware" ? <Cpu className="w-3 h-3" /> : <Server className="w-3 h-3" />}
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                  {t === "hardware" ? "Hardware" : "Servicios"}
                 </button>
               ))}
             </div>
@@ -320,12 +349,12 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <Wifi className="w-4 h-4" style={{ color: systemData.tailscale.active ? "var(--success)" : "var(--error)" }} />
                   <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>Tailscale VPN</span>
-                  <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: systemData.tailscale.active ? "var(--success-bg)" : "var(--error-bg)", color: systemData.tailscale.active ? "var(--success)" : "var(--error)" }}>{systemData.tailscale.active ? "Active" : "Down"}</span>
+                  <span className="ml-auto text-[11px] px-1.5 py-0.5 rounded" style={{ backgroundColor: systemData.tailscale.active ? "var(--success-bg)" : "var(--error-bg)", color: systemData.tailscale.active ? "var(--success)" : "var(--error)" }}>{systemData.tailscale.active ? "Activo" : "Caido"}</span>
                 </div>
-                <div className="text-xs mb-2" style={{ color: "var(--text-muted)" }}>IP: <span className="font-mono" style={{ color: "var(--text-secondary)" }}>{systemData.tailscale.ip}</span></div>
+                <div className="text-xs mb-2" style={{ color: "var(--text-muted)" }}>IP: <span className="font-mono" style={{ color: "var(--text-secondary)" }}>{systemData.tailscale.ip}</span><CopyButton value={systemData.tailscale.ip} /></div>
                 <div className="space-y-1">
                   {systemData.tailscale.devices.map((dev, i) => (
-                    <div key={i} className="flex items-center justify-between text-[10px]">
+                    <div key={i} className="flex items-center justify-between text-[11px]">
                       <span className="font-mono" style={{ color: "var(--text-secondary)" }}>{dev.hostname} <span style={{ color: "var(--text-muted)" }}>({dev.os})</span></span>
                       <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: dev.online ? "var(--success)" : "var(--text-muted)" }} />
                     </div>
@@ -337,16 +366,16 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <ShieldCheck className="w-4 h-4" style={{ color: systemData.firewall.active ? "var(--success)" : "var(--error)" }} />
                   <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>Firewall (UFW)</span>
-                  <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: systemData.firewall.active ? "var(--success-bg)" : "var(--error-bg)", color: systemData.firewall.active ? "var(--success)" : "var(--error)" }}>{systemData.firewall.active ? "Active" : "Down"}</span>
+                  <span className="ml-auto text-[11px] px-1.5 py-0.5 rounded" style={{ backgroundColor: systemData.firewall.active ? "var(--success-bg)" : "var(--error-bg)", color: systemData.firewall.active ? "var(--success)" : "var(--error)" }}>{systemData.firewall.active ? "Activo" : "Caido"}</span>
                 </div>
                 <div className="space-y-1">
                   {systemData.firewall.rules.slice(0, 6).map((rule, i) => (
-                    <div key={i} className="flex items-center justify-between text-[10px]">
+                    <div key={i} className="flex items-center justify-between text-[11px]">
                       <span className="font-mono font-medium" style={{ color: "var(--text-secondary)" }}>{rule.port}</span>
                       <span style={{ color: "var(--text-muted)" }}>{rule.from}</span>
                     </div>
                   ))}
-                  {systemData.firewall.rules.length > 6 && <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>+{systemData.firewall.rules.length - 6} more rules</div>}
+                  {systemData.firewall.rules.length > 6 && <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>+{systemData.firewall.rules.length - 6} reglas mas</div>}
                 </div>
               </div>
             </div>
@@ -357,10 +386,10 @@ export default function DashboardPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                    <th className="text-left py-2 px-2 font-medium" style={{ color: "var(--text-muted)" }}>Service</th>
-                    <th className="text-left py-2 px-2 font-medium" style={{ color: "var(--text-muted)" }}>Status</th>
+                    <th className="text-left py-2 px-2 font-medium" style={{ color: "var(--text-muted)" }}>Servicio</th>
+                    <th className="text-left py-2 px-2 font-medium" style={{ color: "var(--text-muted)" }}>Estado</th>
                     <th className="text-left py-2 px-2 font-medium" style={{ color: "var(--text-muted)" }}>Info</th>
-                    <th className="text-right py-2 px-2 font-medium" style={{ color: "var(--text-muted)" }}>Actions</th>
+                    <th className="text-right py-2 px-2 font-medium" style={{ color: "var(--text-muted)" }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -370,21 +399,21 @@ export default function DashboardPage() {
                       <tr key={svc.name} style={{ borderBottom: "1px solid var(--border)" }}>
                         <td className="py-2 px-2"><span className="font-mono font-medium" style={{ color: "var(--text-primary)" }}>{svc.name}</span></td>
                         <td className="py-2 px-2">
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ backgroundColor: svc.status === "active" ? "var(--success-bg)" : svc.status === "failed" ? "var(--error-bg)" : "var(--card-elevated)", color: svc.status === "active" ? "var(--success)" : svc.status === "failed" ? "var(--error)" : "var(--text-muted)" }}>{svc.status === "not_deployed" ? "not deployed" : svc.status}</span>
+                          <span className="px-1.5 py-0.5 rounded text-[11px] font-medium" style={{ backgroundColor: svc.status === "active" ? "var(--success-bg)" : svc.status === "failed" ? "var(--error-bg)" : "var(--card-elevated)", color: svc.status === "active" ? "var(--success)" : svc.status === "failed" ? "var(--error)" : "var(--text-muted)" }}>{svc.status === "not_deployed" ? "not deployed" : svc.status}</span>
                         </td>
                         <td className="py-2 px-2" style={{ color: "var(--text-muted)" }}>
-                          {svc.uptime != null && svc.status === "active" && <span>up {formatUptime(svc.uptime)}{svc.mem != null ? ` · ${formatBytes(svc.mem)}` : ""}</span>}
+                          {svc.uptime != null && svc.status === "active" && <span>activo {formatUptime(svc.uptime)}{svc.mem != null ? ` · ${formatBytes(svc.mem)}` : ""}</span>}
                         </td>
                         <td className="py-2 px-2">
                           {isActionable && (
                             <div className="flex justify-end gap-1">
-                              <button onClick={() => handleServiceAction(svc, "restart")} disabled={actionLoading[`${svc.name}-restart`]} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: "2px" }} title="Restart">
+                              <button onClick={() => handleServiceAction(svc, "restart")} disabled={actionLoading[`${svc.name}-restart`]} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: "2px" }} title="Reiniciar" aria-label="Reiniciar servicio">
                                 {actionLoading[`${svc.name}-restart`] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCw className="w-3.5 h-3.5" />}
                               </button>
-                              <button onClick={() => handleServiceAction(svc, svc.status === "active" ? "stop" : "start")} disabled={svc.status === "not_deployed"} style={{ background: "none", border: "none", cursor: "pointer", color: svc.status === "active" ? "var(--error)" : "var(--success)", padding: "2px" }} title={svc.status === "active" ? "Stop" : "Start"}>
+                              <button onClick={() => handleServiceAction(svc, svc.status === "active" ? "stop" : "start")} disabled={svc.status === "not_deployed"} style={{ background: "none", border: "none", cursor: "pointer", color: svc.status === "active" ? "var(--error)" : "var(--success)", padding: "2px" }} title={svc.status === "active" ? "Parar" : "Iniciar"} aria-label={svc.status === "active" ? "Parar servicio" : "Iniciar servicio"}>
                                 {svc.status === "active" ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                               </button>
-                              <button onClick={() => handleServiceAction(svc, "logs")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: "2px" }} title="Logs">
+                              <button onClick={() => handleServiceAction(svc, "logs")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: "2px" }} title="Ver logs" aria-label="Ver logs del servicio">
                                 <TerminalIcon className="w-3.5 h-3.5" />
                               </button>
                             </div>
@@ -406,30 +435,32 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4" style={{ color: "var(--accent)" }} />
-              <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Recent Activity</h2>
+              <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Actividad reciente</h2>
             </div>
-            <Link href="/activity" className="text-xs font-medium" style={{ color: "var(--accent)" }}>View all</Link>
+            <Link href="/activity" className="text-xs font-medium" style={{ color: "var(--accent)" }}>Ver todo</Link>
           </div>
           <div className="p-0"><ActivityFeed limit={5} /></div>
         </div>
 
         <div className="rounded-xl overflow-hidden" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
           <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
-            <Blocks className="w-4 h-4" style={{ color: "var(--accent)" }} />
-            <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Quick Links</h2>
+            <ShieldCheck className="w-4 h-4" style={{ color: alerts.some((a) => a.level === "err") ? "var(--error)" : alerts.length ? "var(--warning)" : "var(--success)" }} />
+            <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Alertas</h2>
+            {alerts.length > 0 && (
+              <span className="badge badge-warning" style={{ marginLeft: "auto" }}>{alerts.length}</span>
+            )}
           </div>
-          <div className="p-3 grid grid-cols-2 gap-2">
-            {[
-              { href: "/cron", icon: CalendarClock, label: "Cron Jobs", color: "var(--text-muted)" },
-              { href: "/actions", icon: Zap, label: "Actions", color: "var(--accent)" },
-              { href: "/skills", icon: Blocks, label: "Skills", color: "var(--text-muted)" },
-              { href: "/memory", icon: Activity, label: "Memory", color: "var(--text-muted)" },
-            ].map(({ href, icon: Icon, label, color }) => (
-              <Link key={href} href={href} className="p-2.5 rounded-lg transition-all" style={{ backgroundColor: "var(--card-elevated)", border: "1px solid var(--border)" }}>
-                <div className="flex items-center gap-2">
-                  <Icon className="w-4 h-4" style={{ color }} />
-                  <span className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>{label}</span>
-                </div>
+          <div className="p-3 space-y-1">
+            {alerts.length === 0 && (
+              <div className="flex items-center gap-2 p-2 text-xs" style={{ color: "var(--text-muted)" }}>
+                <CheckCircle className="w-3.5 h-3.5" style={{ color: "var(--success)" }} />
+                Sin alertas — todo en orden
+              </div>
+            )}
+            {alerts.slice(0, 6).map((a, i) => (
+              <Link key={i} href={a.href} className="flex items-center gap-2 p-2 rounded-md text-xs" style={{ backgroundColor: "var(--card-elevated)", color: a.level === "err" ? "var(--error)" : "var(--warning)" }}>
+                <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate" style={{ color: "var(--text-secondary)" }}>{a.text}</span>
               </Link>
             ))}
           </div>
@@ -463,11 +494,11 @@ export default function DashboardPage() {
             {/* Header */}
             <div className="flex items-start justify-between mb-6">
               <div>
-                <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: "var(--font-heading)", color: "var(--text-primary)" }}>System Monitor</h1>
-                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Real-time server resources and services</p>
+                <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: "var(--font-heading)", color: "var(--text-primary)" }}>Monitor del sistema</h1>
+                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Recursos y servicios del servidor en tiempo real</p>
               </div>
               <button onClick={() => setShowSystemFull(false)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
-                <XIcon className="w-4 h-4" /> Close
+                <XIcon className="w-4 h-4" /> Cerrar
               </button>
             </div>
 
@@ -476,7 +507,7 @@ export default function DashboardPage() {
               {(["hardware", "services"] as const).map(t => (
                 <button key={t} onClick={() => setSysTab(t)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors" style={{ backgroundColor: sysTab === t ? "var(--accent-soft)" : "transparent", color: sysTab === t ? "var(--accent)" : "var(--text-secondary)" }}>
                   {t === "hardware" ? <Cpu className="w-4 h-4" /> : <Server className="w-4 h-4" />}
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                  {t === "hardware" ? "Hardware" : "Servicios"}
                 </button>
               ))}
             </div>
@@ -538,12 +569,12 @@ export default function DashboardPage() {
                 {/* VPN + Firewall */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="p-5 rounded-xl" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
-                    <div className="flex items-center gap-3 mb-4"><Wifi className="w-5 h-5" style={{ color: systemData.tailscale.active ? "var(--success)" : "var(--error)" }} /><div><h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>Tailscale VPN</h3><p className="text-sm" style={{ color: systemData.tailscale.active ? "var(--success)" : "var(--error)" }}>{systemData.tailscale.active ? "Active" : "Inactive"}</p></div></div>
-                    <div className="space-y-2 mb-3"><div className="flex justify-between text-sm"><span style={{ color: "var(--text-secondary)" }}>This server</span><span className="font-mono" style={{ color: "var(--text-primary)" }}>{systemData.tailscale.ip}</span></div><div className="flex justify-between text-sm"><span style={{ color: "var(--text-secondary)" }}>Devices</span><span style={{ color: "var(--text-primary)" }}>{systemData.tailscale.devices.length}</span></div></div>
+                    <div className="flex items-center gap-3 mb-4"><Wifi className="w-5 h-5" style={{ color: systemData.tailscale.active ? "var(--success)" : "var(--error)" }} /><div><h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>Tailscale VPN</h3><p className="text-sm" style={{ color: systemData.tailscale.active ? "var(--success)" : "var(--error)" }}>{systemData.tailscale.active ? "Activo" : "Inactivo"}</p></div></div>
+                    <div className="space-y-2 mb-3"><div className="flex justify-between text-sm"><span style={{ color: "var(--text-secondary)" }}>Este servidor</span><span className="font-mono" style={{ color: "var(--text-primary)" }}>{systemData.tailscale.ip}</span><CopyButton value={systemData.tailscale.ip} /></div><div className="flex justify-between text-sm"><span style={{ color: "var(--text-secondary)" }}>Dispositivos</span><span style={{ color: "var(--text-primary)" }}>{systemData.tailscale.devices.length}</span></div></div>
                     {systemData.tailscale.devices.length > 0 && <div className="space-y-1.5 pt-3" style={{ borderTop: "1px solid var(--border)" }}>{systemData.tailscale.devices.map((dev, i) => (<div key={i} className="flex items-center justify-between text-xs"><div className="flex items-center gap-2"><Monitor className="w-3 h-3" style={{ color: "var(--text-muted)" }} /><span className="font-mono" style={{ color: "var(--text-secondary)" }}>{dev.hostname} <span style={{ color: "var(--text-muted)" }}>({dev.os})</span></span></div><div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: dev.online ? "var(--success)" : "var(--text-muted)" }} /></div>))}</div>}
                   </div>
                   <div className="p-5 rounded-xl" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
-                    <div className="flex items-center gap-3 mb-4"><ShieldCheck className="w-5 h-5" style={{ color: systemData.firewall.active ? "var(--success)" : "var(--error)" }} /><div><h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>Firewall (UFW)</h3><p className="text-sm" style={{ color: systemData.firewall.active ? "var(--success)" : "var(--error)" }}>{systemData.firewall.active ? "Active" : "Inactive"}</p></div></div>
+                    <div className="flex items-center gap-3 mb-4"><ShieldCheck className="w-5 h-5" style={{ color: systemData.firewall.active ? "var(--success)" : "var(--error)" }} /><div><h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>Firewall (UFW)</h3><p className="text-sm" style={{ color: systemData.firewall.active ? "var(--success)" : "var(--error)" }}>{systemData.firewall.active ? "Activo" : "Inactivo"}</p></div></div>
                     <div className="space-y-1.5">{systemData.firewall.rules.map((rule, i) => (<div key={i} className="flex items-center justify-between text-xs py-1" style={{ borderBottom: i < systemData.firewall.rules.length - 1 ? "1px solid var(--border)" : "none" }}><div><span className="font-mono font-semibold" style={{ color: "var(--text-primary)" }}>{rule.port}</span>{rule.comment && <span className="ml-2" style={{ color: "var(--text-muted)", fontSize: "10px" }}>{rule.comment}</span>}</div><span className="font-mono" style={{ color: "var(--text-secondary)" }}>{rule.from}</span></div>))}</div>
                   </div>
                 </div>
@@ -554,9 +585,9 @@ export default function DashboardPage() {
               <div className="p-6 rounded-xl" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: "var(--text-primary)" }}><Server className="w-5 h-5" style={{ color: "var(--accent)" }} /> Services ({systemData.systemd.filter(s => s.status === 'active').length}/{systemData.systemd.length} active)</h3>
                 <table className="w-full">
-                  <thead><tr style={{ borderBottom: "1px solid var(--border)" }}><th className="text-left py-2 px-3 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>Service</th><th className="text-left py-2 px-3 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>Description</th><th className="text-left py-2 px-3 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>Status</th><th className="text-right py-2 px-3 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>Actions</th></tr></thead>
-                  <tbody>{systemData.systemd.map(svc => { const isAct = svc.backend === 'pm2' || svc.backend === 'systemd'; return (<tr key={svc.name} style={{ borderBottom: "1px solid var(--border)" }}><td className="py-3 px-3"><span className="font-mono font-medium" style={{ color: "var(--text-primary)" }}>{svc.name}</span></td><td className="py-3 px-3"><span className="text-sm" style={{ color: "var(--text-secondary)" }}>{svc.description || '—'}</span>{svc.uptime != null && svc.status === 'active' && <span className="block text-xs" style={{ color: "var(--text-muted)" }}>up {formatUptime(svc.uptime)}{svc.mem != null ? ` · ${formatBytes(svc.mem)}` : ''}</span>}</td><td className="py-3 px-3"><span className="px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: svc.status === 'active' ? 'var(--success-bg)' : svc.status === 'failed' ? 'var(--error-bg)' : 'var(--card-elevated)', color: svc.status === 'active' ? 'var(--success)' : svc.status === 'failed' ? 'var(--error)' : 'var(--text-muted)' }}>{svc.status ===
- 'not_deployed' ? 'not deployed' : svc.status}</span></td><td className="py-3 px-3"><div className="flex justify-end gap-1">{isAct && (<><button onClick={() => handleServiceAction(svc, "restart")} disabled={actionLoading[`${svc.name}-restart`]} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: "2px" }} title="Restart">{actionLoading[`${svc.name}-restart`] ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCw className="w-4 h-4" />}</button><button onClick={() => handleServiceAction(svc, svc.status === "active" ? "stop" : "start")} disabled={svc.status === "not_deployed"} style={{ background: "none", border: "none", cursor: "pointer", color: svc.status === "active" ? "var(--error)" : "var(--success)", padding: "2px" }}>{svc.status === "active" ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}</button><button onClick={() => handleServiceAction(svc, "logs")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: "2px" }} title="Logs"><TerminalIcon className="w-4 h-4" /></button></>)}</div></td></tr>); })}</tbody>
+                  <thead><tr style={{ borderBottom: "1px solid var(--border)" }}><th className="text-left py-2 px-3 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>Servicio</th><th className="text-left py-2 px-3 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>Descripcion</th><th className="text-left py-2 px-3 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>Estado</th><th className="text-right py-2 px-3 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>Acciones</th></tr></thead>
+                  <tbody>{systemData.systemd.map(svc => { const isAct = svc.backend === 'pm2' || svc.backend === 'systemd'; return (<tr key={svc.name} style={{ borderBottom: "1px solid var(--border)" }}><td className="py-3 px-3"><span className="font-mono font-medium" style={{ color: "var(--text-primary)" }}>{svc.name}</span></td><td className="py-3 px-3"><span className="text-sm" style={{ color: "var(--text-secondary)" }}>{svc.description || '—'}</span>{svc.uptime != null && svc.status === 'active' && <span className="block text-xs" style={{ color: "var(--text-muted)" }}>activo {formatUptime(svc.uptime)}{svc.mem != null ? ` · ${formatBytes(svc.mem)}` : ''}</span>}</td><td className="py-3 px-3"><span className="px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: svc.status === 'active' ? 'var(--success-bg)' : svc.status === 'failed' ? 'var(--error-bg)' : 'var(--card-elevated)', color: svc.status === 'active' ? 'var(--success)' : svc.status === 'failed' ? 'var(--error)' : 'var(--text-muted)' }}>{svc.status ===
+ 'not_deployed' ? 'not deployed' : svc.status}</span></td><td className="py-3 px-3"><div className="flex justify-end gap-1">{isAct && (<><button onClick={() => handleServiceAction(svc, "restart")} disabled={actionLoading[`${svc.name}-restart`]} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: "2px" }} title="Reiniciar" aria-label="Reiniciar servicio">{actionLoading[`${svc.name}-restart`] ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCw className="w-4 h-4" />}</button><button onClick={() => handleServiceAction(svc, svc.status === "active" ? "stop" : "start")} disabled={svc.status === "not_deployed"} style={{ background: "none", border: "none", cursor: "pointer", color: svc.status === "active" ? "var(--error)" : "var(--success)", padding: "2px" }}>{svc.status === "active" ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}</button><button onClick={() => handleServiceAction(svc, "logs")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: "2px" }} title="Ver logs" aria-label="Ver logs del servicio"><TerminalIcon className="w-4 h-4" /></button></>)}</div></td></tr>); })}</tbody>
                 </table>
               </div>
             )}

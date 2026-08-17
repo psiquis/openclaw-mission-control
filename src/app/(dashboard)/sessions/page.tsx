@@ -17,6 +17,7 @@ import {
   Hash,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -268,7 +269,7 @@ function SessionDetail({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "1.25rem" }}>{session.typeEmoji}</span>
+            <span style={{ fontSize: "1.25rem" }}>{session.typeLabel.charAt(0)}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <span
@@ -341,7 +342,7 @@ function SessionDetail({
               },
               {
                 icon: Clock,
-                label: formatDistanceToNow(new Date(session.updatedAt), { addSuffix: true }),
+                label: formatDistanceToNow(new Date(session.updatedAt), { addSuffix: true, locale: es }),
                 color: "var(--text-muted)",
               },
             ].map(({ icon: Icon, label, color }) => (
@@ -498,7 +499,7 @@ function SessionRow({
           flexShrink: 0,
         }}
       >
-        {session.typeEmoji}
+        {session.typeLabel.charAt(0)}
       </div>
 
       {/* Main info */}
@@ -518,7 +519,7 @@ function SessionRow({
             {session.typeLabel}
           </span>
           {session.aborted && (
-            <span style={{ fontSize: "0.65rem", color: "var(--error)" }}> aborted</span>
+            <span style={{ fontSize: "0.65rem", color: "var(--error)" }}> abortada</span>
           )}
         </div>
         <div
@@ -582,7 +583,7 @@ function SessionRow({
       {/* Age */}
       <div style={{ minWidth: "80px", textAlign: "right" }}>
         <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-          {formatDistanceToNow(new Date(session.updatedAt), { addSuffix: true })}
+          {formatDistanceToNow(new Date(session.updatedAt), { addSuffix: true, locale: es })}
         </span>
       </div>
 
@@ -615,8 +616,20 @@ export default function SessionsPage() {
     try {
       setError(null);
       const res = await fetch("/api/sessions");
+      let cronNames: Record<string, string> = {};
+      try {
+        const cronRes = await fetch("/api/cron");
+        const cronJobs = await cronRes.json();
+        if (Array.isArray(cronJobs)) {
+          cronNames = Object.fromEntries(cronJobs.map((j: { id: string; name: string }) => [j.id, j.name]));
+        }
+      } catch { /* gateway no disponible */ }
       const data = await res.json();
-      setSessions(data.sessions || []);
+      setSessions((data.sessions || []).map((sess: Session) =>
+        sess.type === "cron" && sess.cronJobId && cronNames[sess.cronJobId]
+          ? { ...sess, key: cronNames[sess.cronJobId] }
+          : sess
+      ));
     } catch {
       setError("Failed to load sessions");
     } finally {
@@ -663,10 +676,10 @@ export default function SessionsPage() {
               marginBottom: "0.25rem",
             }}
           >
-             Session History
+             Historial de sesiones
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-            All OpenClaw agent sessions — main, cron, sub-agents, and chats
+            Todas las sesiones de agentes — principal, cron, sub-agentes y chats
           </p>
         </div>
 
@@ -936,7 +949,11 @@ export default function SessionsPage() {
               <MessageSquare
                 style={{ width: "40px", height: "40px", margin: "0 auto 0.75rem", opacity: 0.3 }}
               />
-              <p>No sessions match your filter</p>
+              <p style={{ marginBottom: "0.5rem" }}>No hay sesiones que coincidan con el filtro</p>
+              <p style={{ fontSize: "0.8rem" }}>
+                Las sesiones aparecen cuando un agente conversa o un cron job se ejecuta.{" "}
+                <a href="/cron" style={{ color: "var(--accent-fg)" }}>Ver cron jobs</a>
+              </p>
             </div>
           )}
 

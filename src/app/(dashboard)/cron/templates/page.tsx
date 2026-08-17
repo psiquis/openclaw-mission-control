@@ -280,7 +280,7 @@ export default function CronTemplatesPage() {
                   ) : (
                     <span className="flex-1 font-medium" style={{ color: 'var(--text-secondary)' }}>{cat}</span>
                   )}
-                  <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{count} template{count !== 1 ? 's' : ''}</span>
+                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{count} template{count !== 1 ? 's' : ''}</span>
                   {!isEditing && (
                     <>
                       <button
@@ -324,7 +324,7 @@ export default function CronTemplatesPage() {
               <Plus className="w-3 h-3" /> Add
             </button>
           </div>
-          <p className="text-[10px] mt-2" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>
             Rename: click the pencil. Delete: templates move to "general" (or "uncategorized" if deleting general).
           </p>
         </div>
@@ -345,7 +345,7 @@ export default function CronTemplatesPage() {
                       <LayoutTemplate className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--accent)' }} />
                       <h3 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{tpl.name}</h3>
                       {tpl.is_builtin === 0 && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0" style={{ color: 'var(--info)', backgroundColor: 'color-mix(in srgb, var(--info) 15%, transparent)' }}>custom</span>
+                        <span className="text-[11px] px-1.5 py-0.5 rounded flex-shrink-0" style={{ color: 'var(--info)', backgroundColor: 'color-mix(in srgb, var(--info) 15%, transparent)' }}>custom</span>
                       )}
                     </div>
                     <p className="text-xs line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{tpl.description}</p>

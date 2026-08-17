@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
 import {
   FileText,
   Search,
@@ -132,14 +133,14 @@ export function ActivityFeed({ limit = 10 }: ActivityFeedProps) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 md:gap-2 mb-0.5">
                 <span 
-                  className="text-[10px] md:text-xs font-semibold"
+                  className="text-[11px] md:text-xs font-semibold"
                   style={{ color: type.color }}
                 >
                   {activity.type}
                 </span>
                 {activity.status === 'success' && (
                   <span 
-                    className="badge text-[10px] md:text-xs py-0.5 px-1.5 md:px-2 hidden sm:inline-block"
+                    className="badge text-[11px] md:text-xs py-0.5 px-1.5 md:px-2 hidden sm:inline-block"
                     style={{ 
                       backgroundColor: status.bgColor,
                       color: status.color,
@@ -150,7 +151,7 @@ export function ActivityFeed({ limit = 10 }: ActivityFeedProps) {
                 )}
                 {activity.status === 'error' && (
                   <span 
-                    className="badge text-[10px] md:text-xs py-0.5 px-1.5 md:px-2"
+                    className="badge text-[11px] md:text-xs py-0.5 px-1.5 md:px-2"
                     style={{ 
                       backgroundColor: status.bgColor,
                       color: status.color,
@@ -169,10 +170,10 @@ export function ActivityFeed({ limit = 10 }: ActivityFeedProps) {
 
             {/* Time */}
             <time 
-              className="text-[10px] md:text-xs whitespace-nowrap flex-shrink-0"
+              className="text-[11px] md:text-xs whitespace-nowrap flex-shrink-0"
               style={{ color: 'var(--text-muted)' }}
             >
-              {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: false })}
+              {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: false, locale: es })}
             </time>
           </div>
         );
