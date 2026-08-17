@@ -1,77 +1,64 @@
 "use client";
 
-import { MessageCircle, Twitter, Mail, CheckCircle, XCircle, AlertCircle } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { es } from "date-fns/locale";
+import { MessageCircle, Cpu, Brain, CheckCircle, XCircle } from "lucide-react";
 
 interface Integration {
   id: string;
   name: string;
-  status: "connected" | "disconnected" | "configured" | "not_configured";
+  status: "connected" | "disconnected";
   icon: string;
-  lastActivity: string | null;
+  detail: string | null;
 }
 
 interface IntegrationStatusProps {
   integrations: Integration[] | null;
 }
 
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+const iconMap: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
   MessageCircle,
-  Twitter,
-  Mail,
+  Cpu,
+  Brain,
 };
 
 const statusConfig = {
   connected: {
     icon: CheckCircle,
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/30",
-    label: "Connected",
+    color: "var(--positive, #10b981)",
+    bg: "rgba(16, 185, 129, 0.08)",
+    border: "rgba(16, 185, 129, 0.25)",
+    label: "Conectado",
   },
   disconnected: {
     icon: XCircle,
-    color: "text-red-400",
-    bg: "bg-red-500/10",
-    border: "border-red-500/30",
-    label: "Disconnected",
-  },
-  configured: {
-    icon: CheckCircle,
-    color: "text-blue-400",
-    bg: "bg-blue-500/10",
-    border: "border-blue-500/30",
-    label: "Configured",
-  },
-  not_configured: {
-    icon: AlertCircle,
-    color: "text-yellow-400",
-    bg: "bg-yellow-500/10",
-    border: "border-yellow-500/30",
-    label: "Not Configured",
+    color: "var(--text-muted)",
+    bg: "rgba(255, 255, 255, 0.02)",
+    border: "var(--border)",
+    label: "Desconectado",
   },
 };
 
 export function IntegrationStatus({ integrations }: IntegrationStatusProps) {
   if (!integrations) {
     return (
-      <div className="bg-gray-900 rounded-xl p-6 animate-pulse">
-        <div className="h-6 bg-gray-800 rounded w-1/3 mb-4"></div>
+      <div className="rounded-xl p-6 animate-pulse" style={{ backgroundColor: "var(--card)" }}>
+        <div className="h-6 rounded w-1/3 mb-4" style={{ backgroundColor: "var(--border)" }} />
         <div className="space-y-3">
-          <div className="h-16 bg-gray-800 rounded"></div>
-          <div className="h-16 bg-gray-800 rounded"></div>
-          <div className="h-16 bg-gray-800 rounded"></div>
+          <div className="h-16 rounded" style={{ backgroundColor: "var(--border)" }} />
+          <div className="h-16 rounded" style={{ backgroundColor: "var(--border)" }} />
+          <div className="h-16 rounded" style={{ backgroundColor: "var(--border)" }} />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-900 rounded-xl p-6">
-      <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-        <MessageCircle className="w-5 h-5 text-emerald-400" />
-        Integrations
+    <div className="rounded-xl p-6" style={{ backgroundColor: "var(--card)" }}>
+      <h2
+        className="text-xl font-semibold mb-6 flex items-center gap-2"
+        style={{ color: "var(--text-primary)", fontFamily: "var(--font-heading)" }}
+      >
+        <MessageCircle className="w-5 h-5" style={{ color: "var(--accent)" }} />
+        Integraciones
       </h2>
 
       <div className="space-y-3">
@@ -83,27 +70,26 @@ export function IntegrationStatus({ integrations }: IntegrationStatusProps) {
           return (
             <div
               key={integration.id}
-              className={`flex items-center justify-between p-4 rounded-lg border ${status.bg} ${status.border}`}
+              className="flex items-center justify-between p-4 rounded-lg"
+              style={{ backgroundColor: status.bg, border: `1px solid ${status.border}` }}
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gray-800 rounded-lg">
-                  <Icon className="w-5 h-5 text-gray-300" />
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2 rounded-lg flex-shrink-0" style={{ backgroundColor: "var(--surface-hover, rgba(255,255,255,0.05))" }}>
+                  <Icon className="w-5 h-5" style={{ color: "var(--text-secondary)" }} />
                 </div>
-                <div>
-                  <div className="font-medium text-white">{integration.name}</div>
-                  {integration.lastActivity && (
-                    <div className="text-xs text-gray-400">
-                      Last activity:{" "}
-                      {formatDistanceToNow(new Date(integration.lastActivity), {
-                        locale: es,
-                        addSuffix: true,
-                      })}
+                <div className="min-w-0">
+                  <div className="font-medium truncate" style={{ color: "var(--text-primary)" }}>
+                    {integration.name}
+                  </div>
+                  {integration.detail && (
+                    <div className="text-xs truncate" style={{ color: "var(--text-muted)" }}>
+                      {integration.detail}
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className={`flex items-center gap-2 ${status.color}`}>
+              <div className="flex items-center gap-2 flex-shrink-0" style={{ color: status.color }}>
                 <StatusIcon className="w-4 h-4" />
                 <span className="text-sm font-medium">{status.label}</span>
               </div>

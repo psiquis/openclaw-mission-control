@@ -6,7 +6,8 @@ import os from "os";
 const execAsync = promisify(exec);
 
 // Services monitored per backend
-const SYSTEMD_SERVICES = ["mission-control"];
+const SYSTEMD_USER_SERVICES = ["openclaw-gateway"];
+const SYSTEMD_SYSTEM_SERVICES = ["caddy"];
 
 interface ServiceEntry {
   name: string;
@@ -56,6 +57,8 @@ function normalizePm2Status(status: string): string {
 // Friendly display names for PM2 process names
 const SERVICE_DESCRIPTIONS: Record<string, string> = {
   "mission-control": "Mission Control – OpenClaw Dashboard",
+  "openclaw-gateway": "OpenClaw Gateway – WebSocket + agentes",
+  caddy: "Caddy – Reverse proxy (tailnet)",
   classvault: "ClassVault – LMS Platform",
   "content-vault": "Content Vault – Draft Management Webapp",
   "postiz-simple": "Postiz – Social Media Scheduler",
@@ -138,16 +141,41 @@ export async function GET() {
     // ── Services ─────────────────────────────────────────────────────────────
     const services: ServiceEntry[] = [];
 
-    // 1. Systemd services
-    for (const name of SYSTEMD_SERVICES) {
+    // 1. Systemd services (openclaw-gateway is a --user unit; caddy is system-wide via sudo)
+    const systemdTargets: Array<{ name: string; cmd: string }> = [
+      ...SYSTEMD_USER_SERVICES.map((name) => ({ name, cmd: "systemctl --user" })),
+      ...SYSTEMD_SYSTEM_SERVICES.map((name) => ({ name, cmd: "sudo -n systemctl" })),
+    ];
+    for (const { name, cmd } of systemdTargets) {
       try {
-        const { stdout } = await execAsync(`systemctl is-active ${name} 2>/dev/null || true`);
+        const { stdout } = await execAsync(`${cmd} is-active ${name} 2>/dev/null || true`);
         const rawStatus = stdout.trim(); // "active" | "inactive" | "failed" | ...
+
+        let uptime: number | null = null;
+        let restarts = 0;
+        if (rawStatus === "active") {
+          try {
+            const { stdout: startTs } = await execAsync(
+              `date -d "$(${cmd} show ${name} --property=ActiveEnterTimestamp --value)" +%s 2>/dev/null`
+            );
+            const startEpoch = parseInt(startTs.trim(), 10);
+            if (!Number.isNaN(startEpoch)) uptime = Date.now() - startEpoch * 1000;
+          } catch { /* best-effort */ }
+          try {
+            const { stdout: restartsOut } = await execAsync(
+              `${cmd} show ${name} --property=NRestarts --value 2>/dev/null`
+            );
+            restarts = parseInt(restartsOut.trim(), 10) || 0;
+          } catch { /* best-effort */ }
+        }
+
         services.push({
           name,
           status: rawStatus,
           description: SERVICE_DESCRIPTIONS[name] ?? name,
           backend: "systemd",
+          uptime,
+          restarts,
         });
       } catch {
         services.push({

@@ -9,8 +9,12 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
-const ALLOWED_SERVICES_PM2 = ['classvault', 'content-vault', 'postiz-simple', 'brain'];
-const ALLOWED_SERVICES_SYSTEMD = ['mission-control', 'openclaw-gateway', 'nginx'];
+const ALLOWED_SERVICES_PM2 = ['classvault', 'content-vault', 'postiz-simple', 'brain', 'mission-control'];
+// openclaw-gateway runs as a systemd --user unit; caddy runs as a system-wide unit
+// (needs sudo, which is passwordless for this operator on this host).
+const SYSTEMD_USER_SERVICES = ['openclaw-gateway'];
+const SYSTEMD_SYSTEM_SERVICES = ['caddy'];
+const ALLOWED_SERVICES_SYSTEMD = [...SYSTEMD_USER_SERVICES, ...SYSTEMD_SYSTEM_SERVICES];
 const ALLOWED_DOCKER_IDS_PATTERN = /^[a-f0-9]{6,64}$|^[a-zA-Z0-9_-]+$/;
 
 async function pm2Action(name: string, action: string): Promise<string> {
@@ -46,12 +50,18 @@ async function systemdAction(name: string, action: string): Promise<string> {
     throw new Error(`Invalid action "${action}"`);
   }
 
+  // openclaw-gateway is a --user unit for this account; caddy is a system-wide
+  // unit that needs sudo (passwordless, scoped to systemctl/journalctl only).
+  const isUserScope = SYSTEMD_USER_SERVICES.includes(name);
+  const systemctlCmd = isUserScope ? 'systemctl --user' : 'sudo -n systemctl';
+  const journalctlCmd = isUserScope ? 'journalctl --user' : 'sudo -n journalctl';
+
   if (action === 'logs') {
-    const { stdout } = await execAsync(`journalctl -u "${name}" -n 100 --no-pager 2>&1`);
+    const { stdout } = await execAsync(`${journalctlCmd} -u "${name}" -n 100 --no-pager 2>&1`);
     return stdout;
   }
 
-  const { stdout } = await execAsync(`systemctl ${action} "${name}" 2>&1`);
+  const { stdout } = await execAsync(`${systemctlCmd} ${action} "${name}" 2>&1`);
   return stdout || `${action} executed successfully`;
 }
 
