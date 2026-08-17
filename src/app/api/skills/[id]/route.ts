@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSkillById, updateSkill, getSkillAgents, getSkillInvocations, setSkillAgents } from '@/lib/skills-db';
+import { getSkillById, updateSkill, getSkillAgents, getSkillInvocations, setSkillAgents, removeSkillRecord } from '@/lib/skills-db';
 import { parseSkill } from '@/lib/skill-parser';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
 // GET /api/skills/[id] — Skill detail with files, agents, invocations
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -76,5 +77,34 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   } catch (error) {
     console.error('Failed to update skill:', error);
     return NextResponse.json({ error: 'Failed to update skill' }, { status: 500 });
+  }
+}
+
+// DELETE /api/skills/[id] - Delete skill folder from disk and remove DB record
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const skill = getSkillById(id);
+    if (!skill) return NextResponse.json({ error: 'Skill not found' }, { status: 404 });
+
+    const openclawDir = path.join(os.homedir(), '.openclaw');
+    const loc = path.resolve(skill.location);
+
+    if (fs.existsSync(loc)) {
+      // Safety: only delete real skill dirs inside ~/.openclaw that contain a SKILL.md
+      const inside = loc.startsWith(openclawDir + path.sep);
+      const hasSkillMd = fs.existsSync(path.join(loc, 'SKILL.md'));
+      if (!inside || !hasSkillMd) {
+        return NextResponse.json({ error: 'Refusing to delete (safety check failed): ' + loc }, { status: 400 });
+      }
+      fs.rmSync(loc, { recursive: true, force: true });
+    }
+    // Folder may already be gone (stale record) - always clean the DB entry
+    removeSkillRecord(id);
+
+    return NextResponse.json({ success: true, deleted: id, location: loc });
+  } catch (error) {
+    console.error('Failed to delete skill:', error);
+    return NextResponse.json({ error: 'Failed to delete skill' }, { status: 500 });
   }
 }

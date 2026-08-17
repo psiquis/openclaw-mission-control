@@ -56,7 +56,7 @@ export async function GET(
       agent: {
         id: agent.id,
         name: agent.name,
-        model: (typeof agent.model === 'string' ? agent.model : agent.model?.primary) || (typeof config.agents.defaults.model === 'string' ? config.agents.defaults.model : config.agents.defaults.model.primary),
+        model: agent.model?.primary || config.agents.defaults.model.primary,
         workspace: agent.workspace,
         dmPolicy: telegramAccount?.dmPolicy,
         allowAgents: agent.subagents?.allowAgents || [],

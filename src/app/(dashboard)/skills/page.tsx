@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Search, Package, ShieldAlert, Zap, Play, LayoutTemplate } from 'lucide-react';
+import { RefreshCw, Search, Package, ShieldAlert, Zap, Play, LayoutTemplate, Plus } from 'lucide-react';
 import SkillCard from '@/components/SkillCard';
 import SkillDetailModal from '@/components/SkillDetailModal';
+import CreateSkillModal from '@/components/CreateSkillModal';
 
 interface SkillData {
   id: string;
@@ -37,6 +38,7 @@ export default function SkillsPage() {
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterRisk, setFilterRisk] = useState<string>('all');
@@ -114,6 +116,14 @@ export default function SkillsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            style={{ backgroundColor: 'var(--accent)', color: 'white' }}
+          >
+            <Plus className="w-4 h-4" />
+            New Skill
+          </button>
           <a
             href="/skills/templates"
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -252,6 +262,14 @@ export default function SkillsPage() {
             />
           ))}
         </div>
+      )}
+
+      {/* Create Modal */}
+      {showCreate && (
+        <CreateSkillModal
+          onClose={() => setShowCreate(false)}
+          onCreated={fetchSkills}
+        />
       )}
 
       {/* Detail Modal */}

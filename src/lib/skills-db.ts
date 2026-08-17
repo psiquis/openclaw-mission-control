@@ -389,6 +389,14 @@ export function deleteSkill(id: string) {
   getDb().prepare('UPDATE skills SET enabled = 0, updated_at = datetime(\'now\') WHERE id = ?').run(id);
 }
 
+/** Hard-delete a skill record and its relations from the DB. */
+export function removeSkillRecord(id: string) {
+  const db = getDb();
+  try { db.prepare('DELETE FROM skill_invocations WHERE skill_id = ?').run(id); } catch { /* table optional */ }
+  try { db.prepare('DELETE FROM skill_agents WHERE skill_id = ?').run(id); } catch { /* table optional */ }
+  db.prepare('DELETE FROM skills WHERE id = ?').run(id);
+}
+
 // ---------- Agents ----------
 
 export function getSkillAgents(skillId: string): SkillAgent[] {

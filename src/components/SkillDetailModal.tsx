@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { X, FileText, Users, Clock, Settings, Eye } from 'lucide-react';
+import { X, FileText, Users, Clock, Settings, Eye, Trash2 } from 'lucide-react';
 import { RiskBadge, CategoryBadge, SourceBadge, ExecBadge } from './SkillBadges';
 import { MarkdownPreview } from './MarkdownPreview';
 
@@ -60,6 +60,18 @@ interface Props {
 }
 
 export default function SkillDetailModal({ skillId, onClose, onUpdate }: Props) {
+  const [deleting, setDeleting] = useState(false);
+  const handleDelete = async () => {
+    if (!skillId) return;
+    if (!window.confirm('Borrar esta skill? Se eliminara la carpeta del disco. No se puede deshacer.')) return;
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/skills/' + encodeURIComponent(skillId), { method: 'DELETE' });
+      if (res.ok) { onUpdate?.(); onClose(); }
+      else { const d = await res.json(); window.alert(d.error || 'Error al borrar'); }
+    } catch { window.alert('Error de red'); }
+    finally { setDeleting(false); }
+  };
   const [skill, setSkill] = useState<SkillDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<TabId>('overview');
@@ -119,6 +131,9 @@ export default function SkillDetailModal({ skillId, onClose, onUpdate }: Props) 
               </div>
             )}
           </div>
+          <button onClick={handleDelete} disabled={deleting} title="Delete skill" className="p-1 rounded-lg transition-colors mr-1 disabled:opacity-50" style={{ color: '#ef4444' }}>
+            <Trash2 className="w-5 h-5" />
+          </button>
           <button onClick={onClose} className="p-1 rounded-lg transition-colors" style={{ color: 'var(--text-muted)' }}>
             <X className="w-5 h-5" />
           </button>

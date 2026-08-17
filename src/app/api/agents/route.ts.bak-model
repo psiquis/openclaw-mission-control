@@ -130,7 +130,7 @@ export async function GET() {
         emoji: agentInfo.emoji,
         color: agentInfo.color,
         model:
-          (typeof agent.model === 'string' ? agent.model : agent.model?.primary) || (typeof config.agents.defaults.model === 'string' ? config.agents.defaults.model : config.agents.defaults.model.primary),
+          agent.model?.primary || config.agents.defaults.model.primary,
         workspace: agent.workspace,
         dmPolicy:
           telegramAccount?.dmPolicy ||
