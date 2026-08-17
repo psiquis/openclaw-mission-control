@@ -11,7 +11,7 @@ Mission Control now tracks real usage costs by reading OpenClaw session data and
 
 ## Model Pricing
 
-Current pricing (as of Feb 2026):
+Pricing reference (verify current rates with your provider):
 
 | Model | Input ($/M tokens) | Output ($/M tokens) |
 |-------|-------------------|---------------------|
@@ -29,7 +29,7 @@ Pricing is defined in `src/lib/pricing.ts`.
 To collect usage data manually:
 
 ```bash
-cd /root/.openclaw/workspace/mission-control
+cd ~/openclaw-mission-control
 npx tsx scripts/collect-usage.ts
 ```
 
@@ -43,7 +43,7 @@ This will:
 To set up hourly automatic collection:
 
 ```bash
-cd /root/.openclaw/workspace/mission-control
+cd ~/openclaw-mission-control
 ./scripts/setup-cron.sh
 ```
 
@@ -182,5 +182,4 @@ Returns cost summary, breakdowns, and trends.
 
 ---
 
-**Created:** 2026-02-20  
-**Author:** Tenacitas 🦞
+**Last reviewed:** 2026-08-17 (v0.4.0)

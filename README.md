@@ -17,7 +17,7 @@
 **One dashboard for every agent, cron job, skill, and gateway you run with [OpenClaw](https://github.com/openclaw/openclaw).**
 Real gateway telemetry · Built-in security audits · Smart cron scheduling · Full observability — self-hosted, no SaaS, your data never leaves your box.
 
-[Quick Start](#-quick-start) · [Features](#-features) · [Screenshots](#-screenshots) · [Architecture](#-architecture) · [Contributing](#-contributing)
+[Quick Start](#-quick-start) · [Features](#-features) · [Screenshots](#-screenshots) · [Architecture](#-architecture) · [Contributing](#-contributing) · [Changelog](CHANGELOG.md)
 
 </div>
 

@@ -6,13 +6,15 @@ Currently supporting:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.1.x   | :white_check_mark: |
+| 0.4.x   | :white_check_mark: |
+| < 0.4   | :x:                |
 
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability, please report it by:
 
-1. **Email**: security@openclaw.ai (or create a private security advisory on GitHub)
+1. **GitHub Security Advisory** (preferred): open a private advisory at
+   https://github.com/psiquis/openclaw-mission-control/security/advisories/new
 2. **Do NOT** open a public issue
 3. Include:
    - Description of the vulnerability

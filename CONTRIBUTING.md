@@ -5,7 +5,7 @@ Thank you for your interest in contributing! 🦞
 ## Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR-USERNAME/mission-control.git`
+2. Clone your fork: `git clone https://github.com/YOUR-USERNAME/openclaw-mission-control.git`
 3. Create a branch: `git checkout -b feature/your-feature-name`
 4. Make your changes
 5. Test thoroughly
@@ -163,7 +163,7 @@ Use the `BRANDING` config from `src/config/branding.ts` instead of hardcoding:
 
 **❌ Bad:**
 ```typescript
-const username = "@carlosazaustre";
+const username = "@your-handle";
 ```
 
 **✅ Good:**
@@ -196,7 +196,7 @@ For new features:
 2. Test edge cases (empty data, large datasets, etc.)
 3. Test error handling (network failures, invalid input)
 4. Test on different screen sizes
-5. Update `IMPLEMENTATION-STATUS.md`
+5. Update `CHANGELOG.md` if the change is user-facing
 
 ## Commit Messages
 
@@ -242,7 +242,7 @@ clicking notification items.
 
 1. **Update documentation**
    - Update README.md if adding features
-   - Update IMPLEMENTATION-STATUS.md with completion status
+   - Update `CHANGELOG.md` if the change is user-facing
    - Add docstrings to new functions/components
 
 2. **Keep PRs focused**
@@ -360,7 +360,6 @@ Check [ROADMAP.md](./ROADMAP.md) first - it might already be planned!
 
 ## Questions?
 
-- **Discord**: [OpenClaw Community](https://discord.com/invite/clawd)
 - **GitHub Discussions**: For general questions
 - **GitHub Issues**: For bug reports and feature requests
 

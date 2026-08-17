@@ -1,10 +1,22 @@
 # 🦞 Mission Control - Roadmap
 
+## ✅ Shipped in v0.4.0 (Agosto 2026)
+
+- Rediseno visual completo ("pro-minimal") en toda la app
+- Telemetria real del gateway en Settings y System (via `openclaw status --json`)
+- Tarjeta de Auditoria de Seguridad (`openclaw security audit --json`)
+- Quick Actions funcionales (restart gateway, tail logs) con scoping systemd correcto
+- Pagina Workflows / Automatizaciones (solo OpenClaw, sin n8n)
+- Flujo de cambio de contrasena corregido
+- Branding 100% configurable via `.env.local`, sin nada hardcodeado a un despliegue especifico
+
+---
+
 ## Fase 1: Fundamentos (Semana 1)
 > Mejorar lo que ya existe y añadir datos reales
 
 ### 1.1 Activity Logger Real
-- [ ] Crear endpoint POST `/api/activities` para que Tenacitas registre acciones
+- [ ] Crear endpoint POST `/api/activities` para que el agente registre acciones
 - [ ] Hook en OpenClaw para loguear automáticamente cada tool call
 - [ ] Campos: timestamp, type, description, status, duration, tokens_used
 - [ ] Retención: últimos 30 días
@@ -101,7 +113,7 @@
 > Interacción bidireccional
 
 ### 5.1 Command Terminal
-- [ ] Input para enviar mensajes/comandos a Tenacitas
+- [ ] Input para enviar mensajes/comandos al agente
 - [ ] Output en tiempo real de respuesta
 - [ ] Historial de comandos
 - [ ] Shortcuts para comandos frecuentes
@@ -179,7 +191,7 @@
 ### 7.1 Live Activity Stream
 - [ ] WebSocket connection
 - [ ] Updates en tiempo real del activity feed
-- [ ] Indicador "Tenacitas está trabajando..."
+- [ ] Indicador "El agente está trabajando..."
 - [ ] Toast notifications
 
 ### 7.2 System Status
@@ -378,7 +390,7 @@
 
 ## Prioridad Recomendada
 
-### Tier 0: The Flagship 🚀 (Requested by Carlos)
+### Tier 0: The Flagship 🚀
 **Fase 8: The Office 3D** - Entorno 3D inmersivo donde visualizar agentes trabajando
 - Empezar por MVP (8.1) → 2 semanas
 - Luego Interactions (8.2) → 1 semana
@@ -417,4 +429,4 @@
 ---
 
 *Creado: 2026-02-07*
-*Última actualización: 2026-02-21 (Tenacitas nightly shift)*
+*Última actualización: 2026-08-17 (v0.4.0)*
